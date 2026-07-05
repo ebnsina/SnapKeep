@@ -13,8 +13,9 @@ final class NotchHUDModel {
     var tint: Color = Theme.accent
 }
 
-/// A Dynamic-Island-style HUD that springs open from the top-center of the screen (under the
-/// notch) for transient feedback — "Saved", "Copied", "Recording…", with an optional thumbnail.
+/// A Dynamic-Island-style HUD that drops from the top-center of the screen (under the notch)
+/// for transient feedback. The pill is a single persistent view whose scale/offset/opacity are
+/// animated — it never inserts or removes, so it can never render twice.
 @MainActor
 final class NotchHUDController {
     static let shared = NotchHUDController()
@@ -22,7 +23,6 @@ final class NotchHUDController {
     private let model = NotchHUDModel()
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
-    /// Bumped on every show; a scheduled orderOut only runs if it still matches.
     private var generation = 0
 
     private func ensurePanel() {
@@ -41,7 +41,6 @@ final class NotchHUDController {
 
         if let screen = NSScreen.main {
             let x = screen.frame.midX - width / 2
-            // Anchor the top of the panel just under the top edge so it emerges from the notch.
             let y = screen.frame.maxY - height
             p.setFrameOrigin(CGPoint(x: x, y: y))
         }
@@ -60,7 +59,6 @@ final class NotchHUDController {
         model.subtitle = subtitle
         model.thumbnail = thumbnail
         model.tint = tint
-        // Update content in place (no view identity change → never two pills at once).
         withAnimation(Theme.Motion.island) { model.visible = true }
 
         hideTask?.cancel()
@@ -75,64 +73,81 @@ final class NotchHUDController {
         let gen = generation
         withAnimation(Theme.Motion.smooth) { model.visible = false }
         Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(450))
-            // Only hide if nothing new was shown in the meantime.
+            try? await Task.sleep(for: .milliseconds(500))
             guard let self, self.generation == gen else { return }
             self.panel?.orderOut(nil)
         }
     }
 }
 
-/// The pill that scales open from the top.
+/// The persistent pill. Hidden = tucked up into the notch (small, faded, offset up);
+/// visible = settled just below. Only properties animate, never identity.
 private struct NotchHUDView: View {
     @Bindable var model: NotchHUDModel
 
     var body: some View {
         VStack {
-            if model.visible {
-                pill
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.15, anchor: .top).combined(with: .opacity),
-                        removal: .scale(scale: 0.6, anchor: .top).combined(with: .opacity)
-                    ))
-            }
+            pill
+                .scaleEffect(model.visible ? 1 : 0.82, anchor: .top)
+                .offset(y: model.visible ? 0 : -64)
+                .opacity(model.visible ? 1 : 0)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, 8)
+        .padding(.top, 6)
+        .allowsHitTesting(false)
     }
 
     private var pill: some View {
-        HStack(spacing: Theme.Space.md) {
+        HStack(spacing: Theme.Space.sm) {
             thumbnailOrIcon
             VStack(alignment: .leading, spacing: 1) {
-                Text(model.title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(model.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
                 if let subtitle = model.subtitle {
-                    Text(subtitle).font(.caption).foregroundStyle(.white.opacity(0.7))
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
                 }
             }
             Spacer(minLength: Theme.Space.sm)
         }
-        .padding(.horizontal, Theme.Space.md)
-        .padding(.vertical, 10)
-        .frame(width: 300)
-        .background(.black.opacity(0.85), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
-        .shadow(color: .black.opacity(0.4), radius: 16, y: 8)
+        .padding(.leading, 8)
+        .padding(.trailing, Theme.Space.lg)
+        .padding(.vertical, 8)
+        .frame(width: 288, height: 52)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color.black)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(.white.opacity(0.06))
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.45), radius: 18, y: 6)
     }
 
     @ViewBuilder private var thumbnailOrIcon: some View {
         if let thumb = model.thumbnail {
             Image(nsImage: thumb)
                 .resizable().aspectRatio(contentMode: .fill)
-                .frame(width: 40, height: 30)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.white.opacity(0.2), lineWidth: 1))
+                .frame(width: 44, height: 36)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.white.opacity(0.15), lineWidth: 1))
         } else {
-            Image(systemName: model.icon)
-                .font(.system(size: 22))
-                .foregroundStyle(model.tint)
-                .frame(width: 34, height: 34)
+            ZStack {
+                Circle().fill(model.tint.opacity(0.18)).frame(width: 36, height: 36)
+                Image(systemName: model.icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(model.tint)
+            }
         }
     }
 }
