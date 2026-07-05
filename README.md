@@ -18,20 +18,23 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 
 - **Region capture** — `⌘⇧9` freezes the screen; drag to select any area with live
   pixel dimensions, crosshair guides, and an 8x magnifier loupe.
-- **Annotation editor** — mark up captures with pen, marker, line, arrow, rectangle,
-  ellipse, and text, in any color and stroke width, with full undo/redo.
+- **Window capture** — `⌘⇧8`; hover to highlight a window, click to grab it.
 - **Full-screen capture** — `⌘⇧4`, instantly copied to the clipboard and saved.
-- **System-wide hotkeys** — capture without opening the menu.
+- **Recapture last region** — `⌘⇧7` re-shoots the exact previous area.
+- **Annotation editor** — pen, marker, line, arrow, rectangle, ellipse, text,
+  numbered step badges, and pixelate/redact, in any color and stroke, with undo/redo.
+- **Beautify** — drop a capture onto a gradient backdrop with padding, rounded
+  corners, and a soft shadow for a polished share.
+- **OCR** — extract text from any capture on-device (Copy Text) via the Vision framework.
+- **Pin to desktop** — float a capture always-on-top while you work.
 - **History grid** — recent captures in the menu bar; click to copy, drag into any
-  app, or right-click to reveal, share, or delete.
-- **Native sharing** — send any capture via AirDrop, Messages, Mail, or Notes. No
-  accounts, no uploads.
-- **Copy and save at once** — PNGs land in `~/Pictures/SnapKeep`.
-- **Beautiful menu-bar UI** — translucent, spring-animated, light and dark mode.
-- **Private by design** — no network calls, no telemetry.
+  app, or right-click to pin, reveal, share, or delete.
+- **Native sharing** — AirDrop, Messages, Mail, Notes. No accounts, no uploads.
+- **Settings** — image format, capture delay, save location, shutter sound, auto-copy.
+- **System-wide hotkeys**, delayed capture, light and dark mode.
+- **Private by design** — no network calls, no telemetry, no cost.
 
-On the roadmap: window and scrolling capture, delayed capture, OCR, screen
-recording, and beautify framing.
+On the roadmap: scrolling capture and screen recording (GIF/MP4).
 
 ## Install
 

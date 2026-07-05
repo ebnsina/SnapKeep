@@ -10,6 +10,7 @@ final class EditorWindowController {
     private var window: NSWindow?
     private var state: EditorState?
     private var completion: ((Result) -> Void)?
+    private var beautifyWindow: BeautifyWindowController?
 
     func present(cgImage: CGImage, scale: CGFloat, completion: @escaping (Result) -> Void) {
         let state = EditorState(cgImage: cgImage, scale: scale)
@@ -22,6 +23,7 @@ final class EditorWindowController {
             onSave: { [weak self] in self?.save() },
             onShare: { [weak self] in self?.share() },
             onCopyText: { [weak self] in self?.copyText() },
+            onBeautify: { [weak self] in self?.beautify() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -73,6 +75,15 @@ final class EditorWindowController {
         }
     }
 
+    /// Open the Beautify window with the current flattened capture.
+    private func beautify() {
+        guard let state else { return }
+        let controller = BeautifyWindowController()
+        beautifyWindow = controller
+        controller.onClose = { [weak self] _ in self?.beautifyWindow = nil }
+        controller.present(image: state.flatten())
+    }
+
     /// Present the native share sheet for the current (flattened) capture.
     private func share() {
         guard let state, let view = window?.contentView else { return }
@@ -98,6 +109,7 @@ private struct EditorRootView: View {
     let onSave: () -> Void
     let onShare: () -> Void
     let onCopyText: () -> Void
+    let onBeautify: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -105,7 +117,8 @@ private struct EditorRootView: View {
             CanvasRepresentable(state: state)
                 .frame(width: state.displaySize.width, height: state.displaySize.height)
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
-                          onShare: onShare, onCopyText: onCopyText, onClose: onClose)
+                          onShare: onShare, onCopyText: onCopyText,
+                          onBeautify: onBeautify, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(.black)

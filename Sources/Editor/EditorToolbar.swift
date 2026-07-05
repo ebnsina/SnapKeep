@@ -8,6 +8,7 @@ struct EditorToolbar: View {
     let onSave: () -> Void
     let onShare: () -> Void
     let onCopyText: () -> Void
+    let onBeautify: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -84,6 +85,8 @@ struct EditorToolbar: View {
                 .help("Copy to clipboard")
             Button(action: onCopyText) { Label("Copy Text", systemImage: "text.viewfinder") }
                 .help("Extract text (OCR) and copy it")
+            Button(action: onBeautify) { Label("Beautify", systemImage: "wand.and.stars") }
+                .help("Add a gradient background, padding, and shadow")
             Button(action: onShare) { Label("Share", systemImage: "square.and.arrow.up") }
                 .help("Share via AirDrop, Messages, Mail…")
             Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
