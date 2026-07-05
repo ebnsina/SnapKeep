@@ -12,7 +12,7 @@ enum CaptureStore {
         return dir
     }
 
-    /// Timestamped filename, e.g. `Aperi 2026-07-05 at 14.30.12.png`.
+    /// Timestamped filename, e.g. `SnapKeep 2026-07-05 at 14.30.12.png`.
     static func suggestedName(ext: String = "png") -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"

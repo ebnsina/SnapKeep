@@ -1,6 +1,6 @@
 # Product name lives here once. Rename the target key + PRODUCT_BUNDLE_IDENTIFIER
 # below and the .app, scheme, and Info.plist ($(PRODUCT_NAME)) all follow.
-name: Aperi
+name: SnapKeep
 options:
   bundleIdPrefix: me.ebnsina
   deploymentTarget:
@@ -16,14 +16,14 @@ settings:
     ENABLE_HARDENED_RUNTIME: YES
     ARCHS: arm64
 targets:
-  Aperi:
+  SnapKeep:
     type: application
     platform: macOS
     sources:
       - path: Sources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: me.ebnsina.Aperi
+        PRODUCT_BUNDLE_IDENTIFIER: me.ebnsina.SnapKeep
         INFOPLIST_FILE: Sources/App/Info.plist
         ENABLE_PREVIEWS: YES
         SWIFT_EMIT_LOC_STRINGS: YES

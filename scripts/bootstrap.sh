@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate the Xcode project and build a release Aperi.app into ./build.
+# Generate the Xcode project and build a release SnapKeep.app into ./build.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -13,8 +13,8 @@ xcodegen generate
 
 echo "→ Building release…"
 xcodebuild \
-  -project Aperi.xcodeproj \
-  -scheme Aperi \
+  -project SnapKeep.xcodeproj \
+  -scheme SnapKeep \
   -configuration Release \
   -destination 'platform=macOS,arch=arm64' \
   -derivedDataPath .build/dd \
@@ -22,7 +22,7 @@ xcodebuild \
   build | tail -3
 
 mkdir -p build
-rm -rf build/Aperi.app
-cp -R .build/dd/Build/Products/Release/Aperi.app build/Aperi.app
+rm -rf build/SnapKeep.app
+cp -R .build/dd/Build/Products/Release/SnapKeep.app build/SnapKeep.app
 
-echo "✓ Built build/Aperi.app — open it with:  open build/Aperi.app"
+echo "✓ Built build/SnapKeep.app — open it with:  open build/SnapKeep.app"

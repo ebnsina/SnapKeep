@@ -23,7 +23,7 @@ final class RegionCaptureController {
         do {
             cg = try await CaptureEngine.shared.captureScreenImage(displayID: displayID, scale: scale)
         } catch {
-            NSLog("Aperi region capture failed: \(error.localizedDescription)")
+            NSLog("SnapKeep region capture failed: \(error.localizedDescription)")
             return nil
         }
         frozenCG = cg

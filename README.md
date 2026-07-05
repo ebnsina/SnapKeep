@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📸 Aperi
+# 📸 SnapKeep
 
 **A beautiful, native screenshot tool for Apple Silicon.**
 
@@ -10,14 +10,14 @@ Capture · Annotate · Keep — fast, private, and 100% local.
 
 ---
 
-Aperi is a modern macOS screenshot app in the spirit of Lightshot, rebuilt
+SnapKeep is a modern macOS screenshot app in the spirit of Lightshot, rebuilt
 natively for Apple Silicon with **ScreenCaptureKit**, **SwiftUI**, and a
 gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, no cost.
 
 ## ✨ Features
 
 - 🖥️ **Full-screen capture** — one hotkey, instantly copied to the clipboard and saved.
-- 📋 **Copy & save at once** — PNGs land in `~/Pictures/Aperi`.
+- 📋 **Copy & save at once** — PNGs land in `~/Pictures/SnapKeep`.
 - 🎨 **Beautiful menu-bar UI** — translucent, spring-animated, light & dark mode.
 - 🔒 **Private by design** — no network calls, no telemetry.
 
@@ -27,9 +27,9 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 ## 📦 Install
 
 ### Option A — Download (recommended)
-Grab the latest notarized `Aperi.dmg` from the
+Grab the latest notarized `SnapKeep.dmg` from the
 [**Releases**](https://github.com/ebnsina/aperi/releases) page, open it, and
-drag Aperi to Applications.
+drag SnapKeep to Applications.
 
 ### Option B — Build from source
 Requires **Xcode 26+** and [`xcodegen`](https://github.com/yonaskolb/XcodeGen)
@@ -37,23 +37,23 @@ Requires **Xcode 26+** and [`xcodegen`](https://github.com/yonaskolb/XcodeGen)
 
 ```bash
 git clone git@github.com:ebnsina/aperi.git
-cd Aperi
+cd SnapKeep
 ./scripts/bootstrap.sh      # generates the project and builds a release .app
-open build/Aperi.app
+open build/SnapKeep.app
 ```
 
 Or open it in Xcode:
 
 ```bash
 xcodegen generate
-open Aperi.xcodeproj
+open SnapKeep.xcodeproj
 ```
 
 ## 🔐 Permissions
 
 On first launch, macOS asks for **Screen Recording** permission (required by
 ScreenCaptureKit). Grant it in **System Settings → Privacy & Security → Screen
-Recording**, then relaunch Aperi.
+Recording**, then relaunch SnapKeep.
 
 ## 🛠️ Tech
 

@@ -2,7 +2,7 @@ import Carbon.HIToolbox
 import AppKit
 
 /// Registers system-wide hotkeys via Carbon `RegisterEventHotKey` — works whether or not
-/// Aperi's menu is open, and needs no Accessibility permission (unlike a CGEvent tap).
+/// SnapKeep's menu is open, and needs no Accessibility permission (unlike a CGEvent tap).
 @MainActor
 final class HotKeyManager {
     /// Identifies each registered action so the dispatch handler can route key presses.
