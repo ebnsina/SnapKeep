@@ -32,8 +32,12 @@ if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
   codesign --force --sign "$IDENTITY" build/SnapKeep.app >/dev/null 2>&1 \
     && echo "✓ Signed with '$IDENTITY' (Screen Recording grant persists)."
 else
-  echo "ℹ︎  No '$IDENTITY' cert — using ad-hoc signature (grant resets each rebuild)."
-  echo "   Run ./scripts/make-dev-cert.sh once to fix that."
+  # No dev cert (e.g. CI): apply a *valid* ad-hoc signature so downloads show the
+  # normal "unidentified developer" prompt instead of "damaged" (a broken seal).
+  echo "ℹ︎  No '$IDENTITY' cert — applying an ad-hoc signature."
+  codesign --force --deep --sign - build/SnapKeep.app >/dev/null 2>&1 \
+    && echo "✓ Ad-hoc signed (Screen Recording grant resets each rebuild)."
+  echo "   Run ./scripts/make-dev-cert.sh once for a stable dev identity."
 fi
 
 echo "✓ Built build/SnapKeep.app — open it with:  open build/SnapKeep.app"

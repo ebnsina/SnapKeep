@@ -46,8 +46,17 @@ Grab the latest `SnapKeep.dmg` from the
 [Releases](https://github.com/ebnsina/SnapKeep/releases) page, open it, and
 drag SnapKeep to Applications.
 
-> The build isn't notarized yet, so on first launch macOS may say it can't
-> verify the developer. **Right-click SnapKeep → Open → Open** once to allow it.
+> **The build isn't notarized yet** (that needs a paid Apple Developer account),
+> so macOS quarantines the download. If you see **"SnapKeep is damaged and can't
+> be opened,"** it's not actually damaged — that's Gatekeeper. Remove the
+> quarantine flag once, in Terminal:
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/SnapKeep.app
+> ```
+>
+> Then open SnapKeep normally. (On some setups you'll instead see "unidentified
+> developer" — for that, **right-click SnapKeep → Open → Open** is enough.)
 
 ### Option B — Build from source
 
