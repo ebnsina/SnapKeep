@@ -108,7 +108,7 @@ struct SettingsView: View {
             Text(Brand.name).font(.title.bold())
             Text("Version \(Brand.version) (\(Brand.build))")
                 .font(.callout).foregroundStyle(.secondary)
-            Text("A native, private screenshot tool for Apple Silicon.")
+            Text("A fast, private screenshot and recording tool for macOS.")
                 .font(.caption).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Text(Brand.copyright)

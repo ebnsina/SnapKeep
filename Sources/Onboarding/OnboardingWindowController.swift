@@ -17,7 +17,7 @@ final class OnboardingWindowController {
             return
         }
         let root = OnboardingView(app: app, onFinish: { [weak self] in self?.close() })
-        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 560, height: 620),
+        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 660),
                            styleMask: [.titled, .closable, .fullSizeContentView],
                            backing: .buffered, defer: false)
         win.titlebarAppearsTransparent = true
@@ -38,64 +38,98 @@ final class OnboardingWindowController {
     }
 }
 
+private struct Feature: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let subtitle: String
+}
+
 private struct OnboardingView: View {
     @Bindable var app: AppState
     let onFinish: () -> Void
 
-    private let features: [(String, String, String)] = [
-        ("rectangle.dashed", "Region & window capture", "Drag any area or click a window — ⌘⇧9 / ⌘⇧8"),
-        ("pencil.tip.crop.circle", "Annotate", "Arrows, text, steps, blur, and more — then crop, rotate, beautify"),
-        ("record.circle", "Record", "Screen or region to MP4 or GIF, with optional system audio — ⌘⇧6"),
-        ("arrow.down.doc", "Scrolling capture", "Stitch a long page into one tall image"),
-        ("text.viewfinder", "On-device OCR", "Grab text from any capture — 100% private")
+    private let features: [Feature] = [
+        .init(icon: "rectangle.dashed", title: "Capture anything",
+              subtitle: "Region, window, or full screen — plus scrolling capture for long pages"),
+        .init(icon: "wand.and.stars", title: "Annotate & beautify",
+              subtitle: "Arrows, text, steps, blur, crop, rotate, and gradient backdrops"),
+        .init(icon: "record.circle", title: "Record",
+              subtitle: "Screen or a region to MP4 or GIF, with optional system audio"),
+        .init(icon: "lock.shield", title: "Private by design",
+              subtitle: "On-device OCR, pin to desktop, history — no cloud, no accounts")
     ]
 
     var body: some View {
-        VStack(spacing: Theme.Space.lg) {
-            header
-            featureList
-            Spacer(minLength: 0)
-            permission
-            Button(action: onFinish) {
-                Text("Get Started").frame(maxWidth: .infinity)
+        VStack(spacing: 0) {
+            hero
+            VStack(spacing: Theme.Space.lg) {
+                featureGrid
+                Spacer(minLength: 0)
+                permission
+                Button(action: onFinish) {
+                    Text("Get Started")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent).tint(Theme.accent).controlSize(.large)
             }
-            .buttonStyle(.borderedProminent).tint(Theme.accent).controlSize(.large)
+            .padding(Theme.Space.xl)
         }
-        .padding(Theme.Space.xl)
-        .frame(width: 560, height: 620)
+        .frame(width: 600, height: 660)
         .background(.background)
     }
 
-    private var header: some View {
-        VStack(spacing: Theme.Space.sm) {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 54)).foregroundStyle(Theme.brandGradient)
-            Text("Welcome to \(Brand.name)").font(.largeTitle.bold())
-            Text("A beautiful, private screenshot & recording tool for Apple Silicon.")
-                .font(.callout).foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+    private var hero: some View {
+        VStack(spacing: Theme.Space.md) {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Theme.brandGradient)
+                .frame(width: 84, height: 84)
+                .overlay(
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundStyle(.white)
+                )
+                .shadow(color: Theme.accent.opacity(0.4), radius: 16, y: 8)
+            VStack(spacing: 4) {
+                Text("Welcome to \(Brand.name)").font(.largeTitle.bold())
+                Text("A fast, private screenshot and recording tool for macOS.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
         }
-        .padding(.top, Theme.Space.md)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 44)
+        .padding(.bottom, Theme.Space.xl)
+        .background(
+            Theme.brandGradient.opacity(0.08)
+                .overlay(alignment: .bottom) { Divider() }
+        )
     }
 
-    private var featureList: some View {
-        VStack(spacing: Theme.Space.sm) {
-            ForEach(features, id: \.1) { icon, title, subtitle in
-                HStack(spacing: Theme.Space.md) {
-                    Image(systemName: icon)
-                        .font(.system(size: 18)).foregroundStyle(Theme.accent)
-                        .frame(width: 30)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(title).font(.subheadline.weight(.semibold))
-                        Text(subtitle).font(.caption).foregroundStyle(.secondary)
+    private var featureGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Space.md),
+                            GridItem(.flexible(), spacing: Theme.Space.md)],
+                  spacing: Theme.Space.md) {
+            ForEach(features) { f in
+                VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Theme.accent.opacity(0.14))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: f.icon)
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Theme.accent)
                     }
-                    Spacer()
+                    Text(f.title).font(.headline)
+                    Text(f.subtitle).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.vertical, Theme.Space.xs)
-                .padding(.horizontal, Theme.Space.md)
-                .frame(maxWidth: .infinity)
-                .background(.quaternary.opacity(0.4),
-                            in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(Theme.Space.md)
+                .background(.quaternary.opacity(0.35),
+                            in: RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.lg)
+                    .strokeBorder(.white.opacity(0.06), lineWidth: 1))
             }
         }
     }
@@ -103,22 +137,26 @@ private struct OnboardingView: View {
     @ViewBuilder private var permission: some View {
         if app.isAuthorized {
             Label("Screen Recording permission granted", systemImage: "checkmark.seal.fill")
-                .font(.subheadline).foregroundStyle(.green)
+                .font(.subheadline.weight(.medium)).foregroundStyle(.green)
         } else {
-            VStack(spacing: Theme.Space.xs) {
-                Text("One step: grant Screen Recording so \(Brand.name) can capture.")
-                    .font(.caption).foregroundStyle(.secondary)
-                HStack {
-                    Button("Grant Access") { app.requestPermission() }
-                        .buttonStyle(.bordered).tint(Theme.accent)
-                    Button("Relaunch") { app.relaunch() }
-                        .buttonStyle(.bordered)
+            HStack(spacing: Theme.Space.md) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 22)).foregroundStyle(Theme.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Enable Screen Recording").font(.subheadline.weight(.semibold))
+                    Text("Grant access, then relaunch to finish setup.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
+                Spacer()
+                Button("Grant") { app.requestPermission() }
+                    .buttonStyle(.bordered).tint(Theme.accent)
+                Button("Relaunch") { app.relaunch() }
+                    .buttonStyle(.bordered)
             }
-            .padding(Theme.Space.sm)
+            .padding(Theme.Space.md)
             .frame(maxWidth: .infinity)
             .background(Theme.accent.opacity(0.08),
-                        in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                        in: RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
         }
     }
 }

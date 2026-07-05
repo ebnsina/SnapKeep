@@ -2,7 +2,7 @@
 
 # SnapKeep
 
-**A beautiful, native screenshot tool for Apple Silicon.**
+**A beautiful, native screenshot and recording tool for macOS.**
 
 Capture, annotate, keep — fast, private, and 100% local.
 
@@ -10,9 +10,9 @@ Capture, annotate, keep — fast, private, and 100% local.
 
 ---
 
-SnapKeep is a modern macOS screenshot app in the spirit of Lightshot, rebuilt
-natively for Apple Silicon with **ScreenCaptureKit**, **SwiftUI**, and a
-gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, no cost.
+SnapKeep is a modern, native macOS screenshot and recording app built with
+**ScreenCaptureKit**, **SwiftUI**, and a gorgeous, fluid interface. Everything
+runs on-device — no accounts, no cloud, no cost.
 
 ## Features
 
@@ -73,8 +73,7 @@ Recording**, then relaunch SnapKeep.
 
 ## Tech
 
-Swift 6, SwiftUI + AppKit, ScreenCaptureKit, Metal/Core Image, macOS 14+,
-Apple Silicon (arm64).
+Swift 6, SwiftUI + AppKit, ScreenCaptureKit, Metal/Core Image, macOS 14+.
 
 ## License
 
