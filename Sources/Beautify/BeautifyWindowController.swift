@@ -51,6 +51,7 @@ struct BeautifyView: View {
             controls
         }
         .frame(minWidth: 640, minHeight: 560)
+        .onExitCommand { onClose() }
     }
 
     private var preview: some View {

@@ -13,6 +13,8 @@ final class EditorState {
 
     /// Set by the controller so window + canvas resize when the geometry changes.
     @ObservationIgnored var onGeometryChange: (() -> Void)?
+    /// Set by the controller; called when the user presses Esc with nothing to cancel.
+    @ObservationIgnored var onCancel: (() -> Void)?
 
     var annotations: [Annotation] = []
     var tool: Annotation.Kind = .arrow

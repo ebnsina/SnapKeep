@@ -27,6 +27,12 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     override var isFlipped: Bool { false }
     override var acceptsFirstResponder: Bool { true }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // Grab focus so Delete/Esc work without a click first.
+        DispatchQueue.main.async { [weak self] in self?.window?.makeFirstResponder(self) }
+    }
+
     // MARK: Drawing
 
     override func draw(_ dirtyRect: CGRect) {
@@ -144,6 +150,14 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
         switch event.keyCode {
         case 51, 117: // Delete / Forward-delete removes the selected annotation
             if state.selectedID != nil { state.deleteSelected(); needsDisplay = true }
+        case 53: // Esc: cancel text editing → deselect → close the editor
+            if activeTextField != nil {
+                commitTextEditing()
+            } else if state.selectedID != nil {
+                state.selectedID = nil; needsDisplay = true
+            } else {
+                state.onCancel?()
+            }
         default:
             super.keyDown(with: event)
         }

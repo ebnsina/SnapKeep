@@ -47,6 +47,8 @@ final class EditorWindowController {
 
         // Crop/rotate change the canvas size — resize the window to fit.
         state.onGeometryChange = { [weak self] in self?.resizeToFit() }
+        // Esc (with nothing to cancel) closes the editor.
+        state.onCancel = { [weak self] in self?.finish(.closed) }
     }
 
     /// Window content size, capped to the screen so the toolbar is always visible (tall

@@ -12,7 +12,6 @@ struct MenuContent: View {
     var body: some View {
         VStack(spacing: Theme.Space.md) {
             header
-            if showSearch { searchField }
 
             if app.isAuthorized {
                 toolGrid
@@ -24,6 +23,7 @@ struct MenuContent: View {
         .padding(Theme.Space.md)
         .frame(width: 340)
         .onAppear { app.library.reload() }
+        .onExitCommand { dismiss() } // Esc closes the menu
     }
 
     // MARK: Header
@@ -34,11 +34,8 @@ struct MenuContent: View {
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
             Text(Brand.name).font(.headline)
             Spacer()
-            iconButton("magnifyingglass", active: showSearch) {
-                withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
-                if showSearch { searchFocused = true } else { search = "" }
-            }
             iconButton("gearshape") { dismiss(); app.openSettings() }
+            iconButton("power") { NSApp.terminate(nil) }
         }
     }
 
@@ -88,9 +85,12 @@ struct MenuContent: View {
         HStack {
             Text("Recent").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Spacer()
-            Button("Quit") { NSApp.terminate(nil) }
-                .buttonStyle(.plain).font(.caption).foregroundStyle(.tertiary)
+            iconButton("magnifyingglass", small: true, active: showSearch) {
+                withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
+                if showSearch { searchFocused = true } else { search = "" }
+            }
         }
+        if showSearch { searchField }
         if items.isEmpty {
             HStack(spacing: Theme.Space.sm) {
                 Image(systemName: "photo.on.rectangle.angled").foregroundStyle(.tertiary)
@@ -126,13 +126,14 @@ struct MenuContent: View {
                     in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
     }
 
-    private func iconButton(_ symbol: String, active: Bool = false, action: @escaping () -> Void) -> some View {
+    private func iconButton(_ symbol: String, small: Bool = false, active: Bool = false,
+                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 14))
-                .frame(width: 30, height: 30)
+                .font(.system(size: small ? 12 : 14))
+                .frame(width: small ? 24 : 30, height: small ? 24 : 30)
                 .foregroundStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-                .background(.quaternary.opacity(active ? 0 : 0.6), in: Circle())
+                .background(.quaternary.opacity(active ? 0.3 : 0.6), in: Circle())
         }
         .buttonStyle(.plain)
     }
