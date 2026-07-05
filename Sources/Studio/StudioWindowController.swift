@@ -41,7 +41,7 @@ final class StudioWindowController {
 @MainActor
 @Observable
 final class StudioModel {
-    let url: URL
+    private(set) var url: URL
     let player: AVPlayer
     var duration: Double = 0
     var trimStart: Double = 0
@@ -55,6 +55,8 @@ final class StudioModel {
     var captions: [Caption] = []
     var captionsEnabled = false
     var generatingCaptions = false
+
+    var processingSilence = false
 
     /// The caption line active at the current playhead (for live preview).
     var currentCaption: String? {
@@ -73,7 +75,9 @@ final class StudioModel {
         let asset = AVURLAsset(url: url)
         let dur = (try? await asset.load(.duration)).map { CMTimeGetSeconds($0) } ?? 0
         duration = dur
+        trimStart = 0
         trimEnd = dur
+        if let timeObserver { player.removeTimeObserver(timeObserver); self.timeObserver = nil }
         // Follow playback for the playhead + loop within the trim range.
         timeObserver = player.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.03, preferredTimescale: 600), queue: .main) { [weak self] t in
@@ -215,6 +219,52 @@ final class StudioModel {
         return vc
     }
 
+    // MARK: Remove silences
+
+    /// Detect silent gaps, rebuild the video without them, and reload the Studio on the result.
+    /// This "bakes" the cut, so it's best done before captions (timestamps shift).
+    func removeSilences() async {
+        processingSilence = true
+        defer { processingSilence = false }
+
+        let ranges = await SilenceDetector.loudRanges(url: url)
+        guard ranges.count > 1 else { return } // nothing meaningful to cut
+
+        let comp = AVMutableComposition()
+        let asset = AVURLAsset(url: url)
+        guard let v = try? await asset.loadTracks(withMediaType: .video).first,
+              let vTrack = comp.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+        else { return }
+        vTrack.preferredTransform = (try? await v.load(.preferredTransform)) ?? .identity
+        let a = try? await asset.loadTracks(withMediaType: .audio).first
+        let aTrack = a != nil ? comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) : nil
+
+        var at = CMTime.zero
+        for r in ranges {
+            try? vTrack.insertTimeRange(r, of: v, at: at)
+            if let a, let aTrack { try? aTrack.insertTimeRange(r, of: a, at: at) }
+            at = at + r.duration
+        }
+
+        guard let session = AVAssetExportSession(asset: comp, presetName: AVAssetExportPresetHighestQuality)
+        else { return }
+        let out = FileManager.default.temporaryDirectory
+            .appendingPathComponent("desilenced-\(UUID().uuidString).mp4")
+        session.outputURL = out
+        session.outputFileType = .mp4
+        let done: Bool = await withCheckedContinuation { cont in
+            session.exportAsynchronously { cont.resume(returning: session.status == .completed) }
+        }
+        guard done else { return }
+
+        // Swap in the cleaned file; captions no longer line up, so clear them.
+        url = out
+        captions = []; captionsEnabled = false
+        player.replaceCurrentItem(with: AVPlayerItem(url: out))
+        await load()
+        if musicURL != nil { await rebuildPlayerItem() }
+    }
+
     // MARK: Export
 
     /// Export the trimmed range (with music + captions if set) to a new MP4. Nil on failure.
@@ -275,6 +325,7 @@ private struct StudioView: View {
 
             musicRow
             captionsRow
+            silenceRow
 
             HStack {
                 Text("\(timeString(model.trimStart)) – \(timeString(model.trimEnd))")
@@ -338,6 +389,22 @@ private struct StudioView: View {
                 Spacer()
                 Toggle("Show", isOn: $model.captionsEnabled).toggleStyle(.switch).controlSize(.mini)
                 Button("Regenerate") { Task { await model.generateCaptions() } }
+            }
+        }
+        .padding(Theme.Space.sm)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+    }
+
+    @ViewBuilder private var silenceRow: some View {
+        HStack(spacing: Theme.Space.sm) {
+            Image(systemName: "waveform.path").foregroundStyle(.secondary)
+            if model.processingSilence {
+                Text("Removing silent gaps…").font(.callout).foregroundStyle(.secondary)
+                Spacer(); ProgressView().controlSize(.small)
+            } else {
+                Text("Cut out silent gaps").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("Remove Silences") { Task { await model.removeSilences() } }
             }
         }
         .padding(Theme.Space.sm)
