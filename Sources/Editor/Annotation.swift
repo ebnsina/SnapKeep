@@ -4,11 +4,12 @@ import AppKit
 /// is shared by the live canvas and the final export so what you see is what you save.
 struct Annotation: Identifiable {
     enum Kind: String, CaseIterable, Identifiable {
-        case pen, marker, line, arrow, rect, ellipse, text, step, pixelate
+        case select, pen, marker, line, arrow, rect, ellipse, text, step, pixelate
         var id: String { rawValue }
 
         var symbol: String {
             switch self {
+            case .select: return "cursorarrow"
             case .pen: return "pencil.tip"
             case .marker: return "highlighter"
             case .line: return "line.diagonal"
@@ -23,6 +24,7 @@ struct Annotation: Identifiable {
 
         var title: String {
             switch self {
+            case .select: return "Select / move"
             case .pen: return "Pen"
             case .marker: return "Marker"
             case .line: return "Line"
@@ -37,6 +39,35 @@ struct Annotation: Identifiable {
 
         /// Tools placed with a single click rather than a drag.
         var isClickToPlace: Bool { self == .step }
+    }
+
+    /// Bounding box in point space, used for selection + hit-testing.
+    var bounds: CGRect {
+        switch kind {
+        case .text:
+            guard let a = points.first else { return .zero }
+            let w = CGFloat(max(text.count, 1)) * fontSize * 0.58
+            return CGRect(x: a.x, y: a.y, width: max(w, 20), height: fontSize * 1.3)
+        case .step:
+            guard let c = points.first else { return .zero }
+            let r = max(lineWidth * 4, 14)
+            return CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)
+        default:
+            guard let first = points.first else { return .zero }
+            var minX = first.x, minY = first.y, maxX = first.x, maxY = first.y
+            for p in points {
+                minX = min(minX, p.x); minY = min(minY, p.y)
+                maxX = max(maxX, p.x); maxY = max(maxY, p.y)
+            }
+            return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                .insetBy(dx: -lineWidth, dy: -lineWidth)
+        }
+    }
+
+    func translated(by delta: CGSize) -> Annotation {
+        var copy = self
+        copy.points = points.map { CGPoint(x: $0.x + delta.width, y: $0.y + delta.height) }
+        return copy
     }
 
     let id = UUID()
@@ -60,6 +91,8 @@ struct Annotation: Identifiable {
         ctx.setLineWidth(lineWidth)
 
         switch kind {
+        case .select:
+            break // not a drawable; select is an interaction mode
         case .pen:
             strokePath(ctx, points: points)
         case .marker:

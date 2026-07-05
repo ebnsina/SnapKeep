@@ -21,6 +21,9 @@ final class EditorState {
     /// Set by the canvas so model mutations (add/undo/redo) trigger a redraw.
     @ObservationIgnored var onChange: (() -> Void)?
 
+    /// The currently selected annotation (Select tool).
+    var selectedID: UUID?
+
     private var undoStack: [[Annotation]] = []
     private var redoStack: [[Annotation]] = []
 
@@ -67,6 +70,26 @@ final class EditorState {
         guard let next = redoStack.popLast() else { return }
         undoStack.append(annotations)
         annotations = next
+        onChange?()
+    }
+
+    // MARK: Selection (Select tool)
+
+    var selectedIndex: Int? {
+        guard let id = selectedID else { return nil }
+        return annotations.firstIndex { $0.id == id }
+    }
+
+    /// Topmost annotation whose padded bounds contain the point.
+    func annotation(at point: CGPoint) -> Annotation? {
+        annotations.last { $0.bounds.insetBy(dx: -8, dy: -8).contains(point) }
+    }
+
+    func deleteSelected() {
+        guard let idx = selectedIndex else { return }
+        checkpoint()
+        annotations.remove(at: idx)
+        selectedID = nil
         onChange?()
     }
 

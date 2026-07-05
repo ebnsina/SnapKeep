@@ -7,6 +7,10 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     private var draft: Annotation?
     private var activeTextField: NSTextField?
 
+    // Select-tool drag state.
+    private var moveLast: CGPoint?
+    private var didCheckpointMove = false
+
     init(state: EditorState) {
         self.state = state
         super.init(frame: CGRect(origin: .zero, size: state.displaySize))
@@ -28,6 +32,16 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
             annotation.render(in: ctx, base: state.baseImage, scale: state.scale)
         }
         draft?.render(in: ctx, base: state.baseImage, scale: state.scale)
+
+        // Selection outline for the Select tool.
+        if state.tool == .select, let idx = state.selectedIndex {
+            let rect = state.annotations[idx].bounds.insetBy(dx: -4, dy: -4)
+            ctx.setStrokeColor(Theme.accentNS.cgColor)
+            ctx.setLineWidth(1.5)
+            ctx.setLineDash(phase: 0, lengths: [5, 3])
+            ctx.stroke(rect)
+            ctx.setLineDash(phase: 0, lengths: [])
+        }
     }
 
     // MARK: Mouse
@@ -35,6 +49,14 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     override func mouseDown(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
 
+        if state.tool == .select {
+            window?.makeFirstResponder(self) // so Delete removes the selection
+            state.selectedID = state.annotation(at: p)?.id
+            moveLast = state.selectedID == nil ? nil : p
+            didCheckpointMove = false
+            needsDisplay = true
+            return
+        }
         if state.tool == .text {
             beginTextEditing(at: p)
             return
@@ -52,8 +74,20 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard var current = draft else { return }
         let p = convert(event.locationInWindow, from: nil)
+
+        // Select tool: drag the selected annotation.
+        if state.tool == .select {
+            guard let last = moveLast, let idx = state.selectedIndex else { return }
+            if !didCheckpointMove { state.checkpoint(); didCheckpointMove = true }
+            let delta = CGSize(width: p.x - last.x, height: p.y - last.y)
+            state.annotations[idx] = state.annotations[idx].translated(by: delta)
+            moveLast = p
+            needsDisplay = true
+            return
+        }
+
+        guard var current = draft else { return }
         switch current.kind {
         case .pen, .marker:
             current.points.append(p)
@@ -65,11 +99,21 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if state.tool == .select { moveLast = nil; return }
         guard let current = draft else { return }
         draft = nil
         // Ignore accidental taps that produced no real geometry.
         if current.points.count >= 2 { state.add(current) }
         needsDisplay = true
+    }
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 51, 117: // Delete / Forward-delete removes the selected annotation
+            if state.selectedID != nil { state.deleteSelected(); needsDisplay = true }
+        default:
+            super.keyDown(with: event)
+        }
     }
 
     // MARK: Inline text
