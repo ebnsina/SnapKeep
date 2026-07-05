@@ -16,12 +16,12 @@ runs on-device — no accounts, no cloud, no cost.
 
 ## Features
 
-- **Region capture** — `⌘⇧9` freezes the screen; drag to select any area with live
+- **Region capture** — `⌃⌥9` freezes the screen; drag to select any area with live
   pixel dimensions, crosshair guides, and an 8x magnifier loupe.
-- **Window capture** — `⌘⇧8`; hover to highlight a window, click to grab it.
-- **Full-screen capture** — `⌘⇧4`, instantly copied to the clipboard and saved.
-- **Recapture last region** — `⌘⇧7` re-shoots the exact previous area.
-- **Screen recording** — `⌘⇧6` records to MP4 or animated GIF with a floating
+- **Window capture** — `⌃⌥8`; hover to highlight a window, click to grab it.
+- **Full-screen capture** — `⌃⌥4`, instantly copied to the clipboard and saved.
+- **Recapture last region** — `⌃⌥7` re-shoots the exact previous area.
+- **Screen recording** — `⌃⌥6` records to MP4 or animated GIF with a floating
   timer/stop control; recordings land in your history.
 - **Annotation editor** — pen, marker, line, arrow, rectangle, ellipse, text,
   numbered step badges, and pixelate/redact, in any color and stroke, with undo/redo.

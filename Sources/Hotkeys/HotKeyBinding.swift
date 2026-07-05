@@ -66,14 +66,15 @@ enum HotKeyAction: String, CaseIterable, Identifiable {
     }
 
     var defaultBinding: HotKeyBinding {
-        let cmdShift = UInt32(cmdKey | shiftKey)
+        // Control+Option — uncommon, avoids the macOS ⌘⇧3/4/5 screenshot clashes.
+        let ctrlOpt = UInt32(controlKey | optionKey)
         switch self {
-        case .region:     return .init(keyCode: UInt32(kVK_ANSI_9), modifiers: cmdShift, display: "⌘⇧9")
-        case .fullScreen: return .init(keyCode: UInt32(kVK_ANSI_4), modifiers: cmdShift, display: "⌘⇧4")
-        case .window:     return .init(keyCode: UInt32(kVK_ANSI_8), modifiers: cmdShift, display: "⌘⇧8")
-        case .lastRegion: return .init(keyCode: UInt32(kVK_ANSI_7), modifiers: cmdShift, display: "⌘⇧7")
-        case .record:     return .init(keyCode: UInt32(kVK_ANSI_6), modifiers: cmdShift, display: "⌘⇧6")
-        case .palette:    return .init(keyCode: UInt32(kVK_ANSI_K), modifiers: cmdShift, display: "⌘⇧K")
+        case .region:     return .init(keyCode: UInt32(kVK_ANSI_9), modifiers: ctrlOpt, display: "⌃⌥9")
+        case .fullScreen: return .init(keyCode: UInt32(kVK_ANSI_4), modifiers: ctrlOpt, display: "⌃⌥4")
+        case .window:     return .init(keyCode: UInt32(kVK_ANSI_8), modifiers: ctrlOpt, display: "⌃⌥8")
+        case .lastRegion: return .init(keyCode: UInt32(kVK_ANSI_7), modifiers: ctrlOpt, display: "⌃⌥7")
+        case .record:     return .init(keyCode: UInt32(kVK_ANSI_6), modifiers: ctrlOpt, display: "⌃⌥6")
+        case .palette:    return .init(keyCode: UInt32(kVK_ANSI_K), modifiers: ctrlOpt, display: "⌃⌥K")
         }
     }
 }

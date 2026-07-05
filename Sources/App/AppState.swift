@@ -257,13 +257,14 @@ final class AppState {
 
     /// Open (or close) the ⌘K command palette with all actions + recent captures.
     func togglePalette() {
+        func key(_ a: HotKeyAction) -> String { AppSettings.shared.binding(for: a).display }
         var commands: [Command] = [
-            Command(title: "Capture Region", subtitle: "⌘⇧9", symbol: "rectangle.dashed") { [weak self] in self?.captureRegion() },
-            Command(title: "Capture Window", subtitle: "⌘⇧8", symbol: "macwindow") { [weak self] in self?.captureWindow() },
-            Command(title: "Capture Full Screen", subtitle: "⌘⇧4", symbol: "rectangle.inset.filled") { [weak self] in self?.captureFullScreen() },
+            Command(title: "Capture Region", subtitle: key(.region), symbol: "rectangle.dashed") { [weak self] in self?.captureRegion() },
+            Command(title: "Capture Window", subtitle: key(.window), symbol: "macwindow") { [weak self] in self?.captureWindow() },
+            Command(title: "Capture Full Screen", subtitle: key(.fullScreen), symbol: "rectangle.inset.filled") { [weak self] in self?.captureFullScreen() },
             Command(title: "Scrolling Capture", subtitle: nil, symbol: "arrow.down.doc") { [weak self] in self?.scrollingCapture() },
-            Command(title: "Recapture Last Region", subtitle: "⌘⇧7", symbol: "arrow.clockwise") { [weak self] in self?.recaptureLastRegion() },
-            Command(title: recorder.isRecording ? "Stop Recording" : "Record Screen", subtitle: "⌘⇧6",
+            Command(title: "Recapture Last Region", subtitle: key(.lastRegion), symbol: "arrow.clockwise") { [weak self] in self?.recaptureLastRegion() },
+            Command(title: recorder.isRecording ? "Stop Recording" : "Record Screen", subtitle: key(.record),
                     symbol: recorder.isRecording ? "stop.circle.fill" : "record.circle") { [weak self] in self?.toggleRecording() },
             Command(title: "Record Region", subtitle: nil, symbol: "rectangle.dashed.badge.record") { [weak self] in self?.recordRegion() },
             Command(title: "Settings…", subtitle: nil, symbol: "gearshape") { [weak self] in self?.openSettings() },
