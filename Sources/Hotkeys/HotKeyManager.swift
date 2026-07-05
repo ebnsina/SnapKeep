@@ -9,6 +9,8 @@ final class HotKeyManager {
     enum Action: UInt32, CaseIterable {
         case region = 1
         case fullScreen = 2
+        case window = 3
+        case lastRegion = 4
     }
 
     private var refs: [EventHotKeyRef?] = []
@@ -18,14 +20,19 @@ final class HotKeyManager {
     /// The four-char signature Carbon uses to namespace our hotkey IDs.
     private let signature: OSType = 0x534E504B // 'SNPK'
 
-    func register(region: @escaping () -> Void, fullScreen: @escaping () -> Void) {
+    func register(region: @escaping () -> Void, fullScreen: @escaping () -> Void,
+                  window: @escaping () -> Void, lastRegion: @escaping () -> Void) {
         handlers[.region] = region
         handlers[.fullScreen] = fullScreen
+        handlers[.window] = window
+        handlers[.lastRegion] = lastRegion
 
         installDispatcher()
-        // Defaults mirror the menu: ⌘⇧9 region (Lightshot-style), ⌘⇧4 full screen.
+        // ⌘⇧9 region (Lightshot-style), ⌘⇧4 full screen, ⌘⇧8 window, ⌘⇧7 recapture last.
         add(.region, keyCode: UInt32(kVK_ANSI_9), modifiers: UInt32(cmdKey | shiftKey))
         add(.fullScreen, keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(cmdKey | shiftKey))
+        add(.window, keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey))
+        add(.lastRegion, keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey))
     }
 
     private func installDispatcher() {

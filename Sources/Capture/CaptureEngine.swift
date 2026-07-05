@@ -82,6 +82,45 @@ actor CaptureEngine {
         }
     }
 
+    /// On-screen windows suitable for capture (excludes desktop/menubar chrome), with the
+    /// data the picker overlay needs. Returned as Sendable tuples, newest/frontmost first.
+    struct WindowInfo: Sendable {
+        let id: CGWindowID
+        let frame: CGRect      // global screen points
+        let title: String
+        let app: String
+    }
+
+    func listWindows() async throws -> [WindowInfo] {
+        let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+        return content.windows.compactMap { w in
+            guard w.isOnScreen, w.frame.width > 40, w.frame.height > 40 else { return nil }
+            return WindowInfo(id: w.windowID, frame: w.frame,
+                              title: w.title ?? "",
+                              app: w.owningApplication?.applicationName ?? "")
+        }
+    }
+
+    /// Capture a single window by ID at full resolution, with transparent corners.
+    func captureWindow(id: CGWindowID, scale: Int) async throws -> CGImage {
+        let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
+        guard let window = content.windows.first(where: { $0.windowID == id }) else {
+            throw CaptureError.noDisplay
+        }
+        let filter = SCContentFilter(desktopIndependentWindow: window)
+        let config = SCStreamConfiguration()
+        config.width = Int(window.frame.width) * scale
+        config.height = Int(window.frame.height) * scale
+        config.showsCursor = false
+        config.capturesAudio = false
+        config.backgroundColor = .clear
+        do {
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        } catch {
+            throw CaptureError.captureFailed(error.localizedDescription)
+        }
+    }
+
     /// Crop a captured `CGImage` to a region (points), used by the region-select overlay.
     func crop(_ cgImage: CGImage, to rect: CGRect, scale: CGFloat) -> CGImage? {
         let scaled = CGRect(x: rect.minX * scale, y: rect.minY * scale,

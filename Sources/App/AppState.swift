@@ -12,14 +12,22 @@ final class AppState {
     let library = CaptureLibrary()
 
     private let regionController = RegionCaptureController()
+    private let windowController = WindowCaptureController()
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
+    private var settingsWindow: SettingsWindowController?
+    private var pins: [PinWindowController] = []
+
+    /// Remembers the last region so it can be recaptured with one shortcut.
+    private var lastRegion: (displayID: CGDirectDisplayID, rect: CGRect, scale: CGFloat)?
 
     /// Register the system-wide capture hotkeys. Call once at launch.
     func installGlobalHotkeys() {
         hotKeys.register(
             region: { [weak self] in self?.captureRegion() },
-            fullScreen: { [weak self] in self?.captureFullScreen() }
+            fullScreen: { [weak self] in self?.captureFullScreen() },
+            window: { [weak self] in self?.captureWindow() },
+            lastRegion: { [weak self] in self?.recaptureLastRegion() }
         )
     }
 
@@ -63,43 +71,110 @@ final class AppState {
         }
     }
 
-    /// M0 action: capture the whole display, copy to clipboard, and save to ~/Pictures/SnapKeep.
-    func captureFullScreen() {
+    /// Run a capture after the user's configured delay (0 = immediate).
+    private func withDelay(_ action: @escaping () async -> Void) {
+        let delay = AppSettings.shared.captureDelay
         Task {
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            await action()
+        }
+    }
+
+    /// Capture the whole display, then copy (if enabled) and save per settings.
+    func captureFullScreen() {
+        withDelay { [weak self] in
+            guard let self else { return }
             do {
                 let image = try await CaptureEngine.shared.captureDisplay()
-                CaptureStore.copyToClipboard(image)
-                let url = try CaptureStore.savePNG(image)
-                lastSavedURL = url
-                library.register(url)
-                flash("Saved and copied")
+                self.quickSave(image)
             } catch {
-                flash(error.localizedDescription)
+                self.flash(error.localizedDescription)
             }
         }
     }
 
-    /// M1/M2 action: freeze the screen, let the user drag a region, then open the annotation
-    /// editor where they can mark it up and copy or save.
+    /// Freeze the screen, let the user drag a region, then open the annotation editor.
     func captureRegion() {
-        Task {
-            guard let capture = await regionController.begin() else { return } // cancelled
-            let controller = EditorWindowController()
-            editor = controller
-            controller.present(cgImage: capture.cgImage, scale: capture.scale) { [weak self] result in
-                switch result {
-                case .saved(let url):
-                    self?.lastSavedURL = url
-                    self?.library.register(url)
-                    self?.flash("Saved and copied")
-                case .copied:
-                    self?.flash("Copied")
-                case .closed:
-                    break
-                }
-                self?.editor = nil
+        withDelay { [weak self] in
+            guard let self else { return }
+            guard let capture = await self.regionController.begin() else { return } // cancelled
+            self.lastRegion = (capture.displayID, capture.pixelRect, capture.scale)
+            self.openEditor(cgImage: capture.cgImage, scale: capture.scale)
+        }
+    }
+
+    /// Hover to highlight a window, click to capture it, then open the editor.
+    func captureWindow() {
+        withDelay { [weak self] in
+            guard let self else { return }
+            guard let capture = await self.windowController.begin() else { return }
+            self.openEditor(cgImage: capture.cgImage, scale: capture.scale)
+        }
+    }
+
+    /// Recapture the exact region from the last region capture without reselecting.
+    func recaptureLastRegion() {
+        guard let last = lastRegion else { flash("No previous region yet"); return }
+        withDelay { [weak self] in
+            guard let self else { return }
+            do {
+                let full = try await CaptureEngine.shared.captureScreenImage(
+                    displayID: last.displayID, scale: Int(last.scale))
+                guard let cropped = full.cropping(to: last.rect) else { return }
+                self.openEditor(cgImage: cropped, scale: last.scale)
+            } catch {
+                self.flash(error.localizedDescription)
             }
         }
+    }
+
+    /// Copy (if enabled) + save a plain capture, updating history.
+    private func quickSave(_ image: NSImage) {
+        if AppSettings.shared.autoCopy { CaptureStore.copyToClipboard(image) }
+        do {
+            let url = try CaptureStore.save(image)
+            lastSavedURL = url
+            library.register(url)
+            flash(AppSettings.shared.autoCopy ? "Saved and copied" : "Saved")
+        } catch {
+            flash(error.localizedDescription)
+        }
+    }
+
+    /// Open the annotation editor for a captured image and route its result.
+    private func openEditor(cgImage: CGImage, scale: CGFloat) {
+        let controller = EditorWindowController()
+        editor = controller
+        controller.present(cgImage: cgImage, scale: scale) { [weak self] result in
+            switch result {
+            case .saved(let url):
+                self?.lastSavedURL = url
+                self?.library.register(url)
+                self?.flash("Saved")
+            case .copied:
+                self?.flash("Copied")
+            case .closed:
+                break
+            }
+            self?.editor = nil
+        }
+    }
+
+    // MARK: Settings & pins
+
+    func openSettings() {
+        let controller = settingsWindow ?? SettingsWindowController()
+        settingsWindow = controller
+        controller.show()
+    }
+
+    /// Pin a saved capture as a floating always-on-top window.
+    func pin(_ item: CaptureItem) {
+        guard let image = NSImage(contentsOf: item.url) else { return }
+        let controller = PinWindowController(image: image)
+        pins.append(controller)
+        controller.onClose = { [weak self] c in self?.pins.removeAll { $0 === c } }
+        controller.show()
     }
 
     func revealLastInFinder() {

@@ -49,11 +49,23 @@ struct MenuContent: View {
             }
             .keyboardShortcut("9", modifiers: [.command, .shift])
 
+            MenuButton(title: "Capture Window", subtitle: "Click a window · ⌘⇧8",
+                       symbol: "macwindow") {
+                app.captureWindow()
+            }
+            .keyboardShortcut("8", modifiers: [.command, .shift])
+
             MenuButton(title: "Capture Full Screen", subtitle: "Copy & save · ⌘⇧4",
                        symbol: "rectangle.inset.filled") {
                 app.captureFullScreen()
             }
             .keyboardShortcut("4", modifiers: [.command, .shift])
+
+            MenuButton(title: "Recapture Last Region", subtitle: "Same area · ⌘⇧7",
+                       symbol: "arrow.clockwise.circle") {
+                app.recaptureLastRegion()
+            }
+            .keyboardShortcut("7", modifiers: [.command, .shift])
         }
     }
 
@@ -86,6 +98,15 @@ struct MenuContent: View {
                     .transition(.opacity)
             }
             Spacer()
+            Button {
+                app.openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Settings")
+
             Button("Quit") { NSApp.terminate(nil) }
                 .buttonStyle(.plain)
                 .font(.caption)

@@ -57,6 +57,7 @@ private struct HistoryCell: View {
         }
         .contextMenu {
             Button("Copy") { app.copyToClipboard(item) }
+            Button("Pin to Desktop") { app.pin(item) }
             Button("Reveal in Finder") { app.reveal(item) }
             ShareLink("Share", item: item.url)
             Divider()

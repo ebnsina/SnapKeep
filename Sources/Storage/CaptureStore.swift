@@ -29,6 +29,31 @@ enum CaptureStore {
         return url
     }
 
+    /// Save honoring user settings (format + directory), and optionally play the shutter.
+    @discardableResult
+    @MainActor
+    static func save(_ image: NSImage, settings: AppSettings = .shared) throws -> URL {
+        let dir = settings.saveDirectory
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let format = settings.format
+        let data: Data?
+        switch format {
+        case .png: data = pngData(from: image)
+        case .jpeg: data = jpegData(from: image, quality: 0.9)
+        }
+        guard let data else { throw CocoaError(.fileWriteUnknown) }
+        let url = dir.appendingPathComponent(suggestedName(ext: format.ext))
+        try data.write(to: url)
+        if settings.playSound { NSSound(named: "Grab")?.play() }
+        return url
+    }
+
+    static func jpegData(from image: NSImage, quality: CGFloat) -> Data? {
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff) else { return nil }
+        return rep.representation(using: .jpeg, properties: [.compressionFactor: quality])
+    }
+
     static func copyToClipboard(_ image: NSImage) {
         let pb = NSPasteboard.general
         pb.clearContents()
