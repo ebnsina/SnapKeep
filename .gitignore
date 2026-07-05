@@ -1,0 +1,37 @@
+# Internal planning / data — never committed (kept local only)
+docs/
+data/
+
+# Xcode / generated project (we commit project.yml, not the generated .xcodeproj)
+*.xcodeproj/
+!project.yml
+DerivedData/
+build/
+.build/
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+Package.resolved
+
+# macOS
+.DS_Store
+*.swp
+*~.nib
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+
+# Secrets / signing
+*.p12
+*.mobileprovision
+.env
+ExportOptions.plist
+
+# Release artifacts
+*.dmg
+*.zip
