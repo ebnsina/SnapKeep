@@ -27,10 +27,23 @@ final class AppState {
         isAuthorized = ScreenPermissions.isAuthorized
     }
 
+    /// Called once at launch: touch ScreenCaptureKit so macOS shows its native prompt and
+    /// binds the grant to this binary, then refresh the UI.
+    func primePermissionOnLaunch() {
+        Task {
+            await CaptureEngine.shared.primePermission()
+            refreshAuthorization()
+        }
+    }
+
+    /// Grant Access button: drive ScreenCaptureKit's own prompt (reliable), falling back to
+    /// the legacy request API, then refresh.
     func requestPermission() {
-        ScreenPermissions.request()
-        // The grant only applies after relaunch; nudge the user toward Settings meanwhile.
-        ScreenPermissions.openSystemSettings()
+        Task {
+            let ok = await CaptureEngine.shared.primePermission()
+            if !ok { ScreenPermissions.request() }
+            refreshAuthorization()
+        }
     }
 
     func openScreenRecordingSettings() {

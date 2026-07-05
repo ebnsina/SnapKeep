@@ -61,15 +61,16 @@ struct MenuContent: View {
         VStack(alignment: .leading, spacing: Theme.Space.sm) {
             Label("Screen Recording permission needed", systemImage: "lock.shield")
                 .font(.subheadline.weight(.medium))
-            Text("Enable \(Brand.name) in System Settings, then relaunch — macOS only applies the permission to a freshly launched app.")
+            Text("Click Grant Access and allow \(Brand.name) in the macOS dialog, then hit Relaunch to finish.")
                 .font(.caption).foregroundStyle(.secondary)
             HStack(spacing: Theme.Space.xs) {
-                Button("Open Settings…") { app.openScreenRecordingSettings() }
-                Button("Relaunch") { app.relaunch() }
+                Button("Grant Access") { app.requestPermission() }
                     .buttonStyle(.borderedProminent)
                     .tint(Theme.accent)
+                Button("Open Settings") { app.openScreenRecordingSettings() }
+                Button("Relaunch") { app.relaunch() }
             }
-            Text("Already enabled it? Just hit Relaunch.")
+            Text("Already allowed it? Just hit Relaunch.")
                 .font(.caption2).foregroundStyle(.tertiary)
         }
         .padding(Theme.Space.sm)
