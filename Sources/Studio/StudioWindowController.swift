@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import AVFoundation
+import UniformTypeIdentifiers
 
 /// Post-recording editor: preview, trim, and export. The first piece of the Recording Studio;
 /// music/captions/overlays/silence-removal layer on top of this.
@@ -48,6 +49,9 @@ final class StudioModel {
     var current: Double = 0
     var exporting = false
 
+    var musicURL: URL?
+    var musicVolume: Double = 0.6
+
     private var timeObserver: Any?
 
     init(url: URL) {
@@ -77,15 +81,87 @@ final class StudioModel {
         current = seconds
     }
 
-    /// Export the trimmed range to a new MP4. Returns the temp URL, or nil on failure.
+    // MARK: Music
+
+    func setMusic(_ newURL: URL?) {
+        musicURL = newURL
+        Task { await rebuildPlayerItem() }
+    }
+
+    func setVolume(_ v: Double) {
+        musicVolume = v
+        Task { if let (_, mix) = await buildComposition() { player.currentItem?.audioMix = mix } }
+    }
+
+    private func rebuildPlayerItem() async {
+        guard musicURL != nil, let (comp, mix) = await buildComposition() else {
+            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+            seek(to: trimStart); return
+        }
+        let item = AVPlayerItem(asset: comp)
+        item.audioMix = mix
+        player.replaceCurrentItem(with: item)
+        seek(to: trimStart)
+    }
+
+    /// Build a composition with the video, its audio, and (if set) looped background music.
+    private func buildComposition() async -> (AVMutableComposition, AVMutableAudioMix?)? {
+        let comp = AVMutableComposition()
+        let video = AVURLAsset(url: url)
+        do {
+            let dur = try await video.load(.duration)
+            let range = CMTimeRange(start: .zero, duration: dur)
+            if let v = try await video.loadTracks(withMediaType: .video).first,
+               let track = comp.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                try track.insertTimeRange(range, of: v, at: .zero)
+                track.preferredTransform = try await v.load(.preferredTransform)
+            }
+            if let a = try await video.loadTracks(withMediaType: .audio).first,
+               let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                try track.insertTimeRange(range, of: a, at: .zero)
+            }
+
+            var mix: AVMutableAudioMix?
+            if let musicURL {
+                let music = AVURLAsset(url: musicURL)
+                if let m = try await music.loadTracks(withMediaType: .audio).first,
+                   let track = comp.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                    let mDur = try await music.load(.duration)
+                    var at = CMTime.zero
+                    while at < dur, mDur.seconds > 0.1 {
+                        let chunk = min(dur - at, mDur)
+                        try track.insertTimeRange(CMTimeRange(start: .zero, duration: chunk), of: m, at: at)
+                        at = at + chunk
+                    }
+                    let params = AVMutableAudioMixInputParameters(track: track)
+                    params.setVolume(Float(musicVolume), at: .zero)
+                    let m2 = AVMutableAudioMix(); m2.inputParameters = [params]; mix = m2
+                }
+            }
+            return (comp, mix)
+        } catch {
+            return nil
+        }
+    }
+
+    // MARK: Export
+
+    /// Export the trimmed range (with music if set) to a new MP4. Nil on failure.
     func export() async -> URL? {
-        let asset = AVURLAsset(url: url)
+        let asset: AVAsset
+        let mix: AVAudioMix?
+        if musicURL != nil, let built = await buildComposition() {
+            asset = built.0; mix = built.1
+        } else {
+            asset = AVURLAsset(url: url); mix = nil
+        }
         guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality)
         else { return nil }
         let out = FileManager.default.temporaryDirectory
             .appendingPathComponent("studio-\(UUID().uuidString).mp4")
         session.outputURL = out
         session.outputFileType = .mp4
+        session.audioMix = mix
         session.timeRange = CMTimeRange(
             start: CMTime(seconds: trimStart, preferredTimescale: 600),
             end: CMTime(seconds: max(trimEnd, trimStart + 0.1), preferredTimescale: 600))
@@ -113,6 +189,8 @@ private struct StudioView: View {
 
             TrimBar(model: model)
 
+            musicRow
+
             HStack {
                 Text("\(timeString(model.trimStart)) – \(timeString(model.trimEnd))")
                     .font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
@@ -136,6 +214,35 @@ private struct StudioView: View {
         .frame(minWidth: 560, minHeight: 480)
         .task { await model.load() }
         .onExitCommand { onCancel() }
+    }
+
+    @ViewBuilder private var musicRow: some View {
+        HStack(spacing: Theme.Space.sm) {
+            Image(systemName: "music.note").foregroundStyle(.secondary)
+            if let m = model.musicURL {
+                Text(m.deletingPathExtension().lastPathComponent)
+                    .font(.callout).lineLimit(1).truncationMode(.middle)
+                Image(systemName: "speaker.wave.2").font(.caption).foregroundStyle(.secondary)
+                Slider(value: Binding(get: { model.musicVolume }, set: { model.setVolume($0) }), in: 0...1)
+                    .controlSize(.small).frame(width: 90).tint(Theme.accent)
+                Button { model.setMusic(nil) } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain).foregroundStyle(.tertiary)
+            } else {
+                Text("Add background music").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("Choose Audio…") { chooseMusic() }
+            }
+            if model.musicURL != nil { Spacer() }
+        }
+        .padding(Theme.Space.sm)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+    }
+
+    private func chooseMusic() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.audio, .mp3, .wav, .mpeg4Audio]
+        if panel.runModal() == .OK, let url = panel.url { model.setMusic(url) }
     }
 
     private func timeString(_ s: Double) -> String {
