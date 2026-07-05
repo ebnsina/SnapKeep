@@ -29,11 +29,13 @@ final class CommandPaletteController {
                                       onRun: { [weak self] cmd in self?.close(); cmd.run() },
                                       onClose: { [weak self] in self?.close() })
         let panel = KeyablePanel(contentRect: CGRect(x: 0, y: 0, width: 560, height: 420),
-                                 styleMask: [.borderless, .nonactivatingPanel],
+                                 styleMask: [.borderless],
                                  backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = true
+        panel.isFloatingPanel = true
+        panel.becomesKeyOnlyIfNeeded = false // must become key to type/navigate
         panel.level = .modalPanel
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .moveToActiveSpace]
         panel.contentView = NSHostingView(rootView: view)
@@ -43,8 +45,8 @@ final class CommandPaletteController {
             let y = screen.frame.midY - 100 // slightly above center
             panel.setFrameOrigin(CGPoint(x: x, y: y))
         }
-        panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
         self.panel = panel
     }
 
@@ -160,12 +162,17 @@ private struct PaletteField: NSViewRepresentable {
         field.drawsBackground = false
         field.focusRingType = .none
         field.delegate = context.coordinator
-        DispatchQueue.main.async { field.window?.makeFirstResponder(field) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            field.window?.makeFirstResponder(field)
+        }
         return field
     }
 
     func updateNSView(_ nsView: NSTextField, context: Context) {
         if nsView.stringValue != text { nsView.stringValue = text }
+        if nsView.window?.firstResponder == nil {
+            nsView.window?.makeFirstResponder(nsView)
+        }
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
