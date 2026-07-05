@@ -9,6 +9,7 @@ struct EditorToolbar: View {
     let onShare: () -> Void
     let onCopyText: () -> Void
     let onBeautify: () -> Void
+    let onPrint: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -78,12 +79,28 @@ struct EditorToolbar: View {
     private var actions: some View {
         HStack(spacing: 3) {
             ToolbarIcon(symbol: "doc.on.doc", help: "Copy to clipboard", action: onCopy)
-            ToolbarIcon(symbol: "text.viewfinder", help: "Copy text (OCR)", action: onCopyText)
-            ToolbarIcon(symbol: "wand.and.stars", help: "Beautify", action: onBeautify)
-            ToolbarIcon(symbol: "square.and.arrow.up", help: "Share", action: onShare)
+            moreMenu
             ToolbarIcon(symbol: "square.and.arrow.down", help: "Save", role: .primary, action: onSave)
             ToolbarIcon(symbol: "xmark", help: "Close", action: onClose)
         }
+    }
+
+    /// Secondary actions tucked behind a "…" so the toolbar stays tidy.
+    private var moreMenu: some View {
+        Menu {
+            Button { onCopyText() } label: { Label("Copy Text (OCR)", systemImage: "text.viewfinder") }
+            Button { onBeautify() } label: { Label("Beautify", systemImage: "wand.and.stars") }
+            Button { onShare() } label: { Label("Share…", systemImage: "square.and.arrow.up") }
+            Button { onPrint() } label: { Label("Print…", systemImage: "printer") }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 13.5, weight: .medium))
+                .frame(width: 30, height: 28)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help("More actions")
     }
 
     private var divider: some View {

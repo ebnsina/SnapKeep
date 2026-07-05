@@ -24,6 +24,7 @@ final class EditorWindowController {
             onShare: { [weak self] in self?.share() },
             onCopyText: { [weak self] in self?.copyText() },
             onBeautify: { [weak self] in self?.beautify() },
+            onPrint: { [weak self] in self?.printCapture() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -75,6 +76,22 @@ final class EditorWindowController {
         }
     }
 
+    /// Print the current flattened capture, scaled to fit the page.
+    private func printCapture() {
+        guard let state else { return }
+        let image = state.flatten()
+        let imageView = NSImageView(frame: CGRect(origin: .zero, size: image.size))
+        imageView.image = image
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+
+        let info = NSPrintInfo.shared
+        info.horizontalPagination = .fit
+        info.verticalPagination = .fit
+        info.orientation = image.size.width >= image.size.height ? .landscape : .portrait
+        let op = NSPrintOperation(view: imageView, printInfo: info)
+        op.run()
+    }
+
     /// Open the Beautify window with the current flattened capture.
     private func beautify() {
         guard let state else { return }
@@ -110,6 +127,7 @@ private struct EditorRootView: View {
     let onShare: () -> Void
     let onCopyText: () -> Void
     let onBeautify: () -> Void
+    let onPrint: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -118,7 +136,7 @@ private struct EditorRootView: View {
                 .frame(width: state.displaySize.width, height: state.displaySize.height)
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
                           onShare: onShare, onCopyText: onCopyText,
-                          onBeautify: onBeautify, onClose: onClose)
+                          onBeautify: onBeautify, onPrint: onPrint, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(.black)
