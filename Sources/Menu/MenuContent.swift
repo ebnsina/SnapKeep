@@ -34,8 +34,8 @@ struct MenuContent: View {
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
             Text(Brand.name).font(.headline)
             Spacer()
-            iconButton("gearshape") { dismiss(); app.openSettings() }
-            iconButton("power") { NSApp.terminate(nil) }
+            iconButton("gearshape", label: "Settings") { dismiss(); app.openSettings() }
+            iconButton("power", label: "Quit") { NSApp.terminate(nil) }
         }
     }
 
@@ -85,7 +85,7 @@ struct MenuContent: View {
         HStack {
             Text("Recent").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Spacer()
-            iconButton("magnifyingglass", small: true, active: showSearch) {
+            iconButton("magnifyingglass", label: "Search", small: true, active: showSearch) {
                 withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
                 if showSearch { searchFocused = true } else { search = "" }
             }
@@ -126,8 +126,8 @@ struct MenuContent: View {
                     in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
     }
 
-    private func iconButton(_ symbol: String, small: Bool = false, active: Bool = false,
-                            action: @escaping () -> Void) -> some View {
+    private func iconButton(_ symbol: String, label: String = "", small: Bool = false,
+                            active: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: small ? 12 : 14))
@@ -136,6 +136,8 @@ struct MenuContent: View {
                 .background(.quaternary.opacity(active ? 0.3 : 0.6), in: Circle())
         }
         .buttonStyle(.plain)
+        .help(label)
+        .accessibilityLabel(label)
     }
 }
 
@@ -242,7 +244,7 @@ private struct RowAction: View {
                 .foregroundStyle(hovering ? Color.primary : .secondary)
                 .background(hovering ? Color.primary.opacity(0.1) : .clear, in: Circle())
         }
-        .buttonStyle(.plain).help(help)
+        .buttonStyle(.plain).help(help).accessibilityLabel(help)
         .onHover { hovering = $0 }
     }
 }

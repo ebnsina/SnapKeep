@@ -153,6 +153,7 @@ private struct ToolbarIcon: View {
         .disabled(disabled)
         .opacity(disabled ? 0.3 : 1)
         .help(help)
+        .accessibilityLabel(help)
         .onHover { hovering = $0 }
         .animation(Theme.Motion.snappy, value: hovering)
         .animation(Theme.Motion.snappy, value: isActive)
