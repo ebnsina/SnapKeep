@@ -4,15 +4,18 @@ import AppKit
 /// cutout for the current selection, live dimensions, crosshair guides, and a magnifier loupe.
 final class RegionSelectView: NSView {
     private let frozen: NSImage
+    private let blurred: NSImage
     private let onComplete: (CGRect?) -> Void
+    private let cornerRadius: CGFloat = 12 // rounded-xl
 
     private var startPoint: CGPoint?
     private var currentRect: CGRect = .zero
     private var mouseLocation: CGPoint = .zero
     private var isDragging = false
 
-    init(frame: CGRect, frozen: NSImage, onComplete: @escaping (CGRect?) -> Void) {
+    init(frame: CGRect, frozen: NSImage, blurred: NSImage, onComplete: @escaping (CGRect?) -> Void) {
         self.frozen = frozen
+        self.blurred = blurred
         self.onComplete = onComplete
         super.init(frame: frame)
     }
@@ -71,29 +74,23 @@ final class RegionSelectView: NSView {
     override func draw(_ dirtyRect: CGRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
 
-        // 1. Frozen screenshot as the backdrop.
-        frozen.draw(in: bounds)
-
-        // 2. Dim everything.
-        ctx.setFillColor(NSColor.black.withAlphaComponent(0.35).cgColor)
+        // 1. Blurred screenshot as the backdrop, with a light dim for contrast.
+        blurred.draw(in: bounds)
+        ctx.setFillColor(NSColor.black.withAlphaComponent(0.22).cgColor)
         ctx.fill(bounds)
 
         let hasSelection = currentRect.width > 0 && currentRect.height > 0
 
         if hasSelection {
-            // 3. Punch the selection back to full brightness.
+            // 2. Show the crisp screenshot inside a rounded-xl selection window.
+            let radius = min(cornerRadius, min(currentRect.width, currentRect.height) / 2)
+            let path = NSBezierPath(roundedRect: currentRect, xRadius: radius, yRadius: radius)
             ctx.saveGState()
-            ctx.setBlendMode(.clear)
-            ctx.fill(currentRect)
-            ctx.restoreGState()
-            frozen.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1,
-                        respectFlipped: true, hints: nil)
-            ctx.saveGState()
-            ctx.clip(to: currentRect)
+            path.addClip()
             frozen.draw(in: bounds)
             ctx.restoreGState()
 
-            drawSelectionBorder(ctx)
+            drawSelectionBorder(path)
             drawDimensionPill()
         } else {
             drawCrosshair(ctx)
@@ -102,20 +99,20 @@ final class RegionSelectView: NSView {
         if !hasSelection || isDragging { drawLoupe(ctx) }
     }
 
-    private func drawSelectionBorder(_ ctx: CGContext) {
-        ctx.setStrokeColor(brandColor.cgColor)
-        ctx.setLineWidth(1.5)
-        ctx.stroke(currentRect)
+    private func drawSelectionBorder(_ path: NSBezierPath) {
+        brandColor.setStroke()
+        path.lineWidth = 2
+        path.stroke()
 
         // Corner handles.
-        let handle: CGFloat = 5
-        ctx.setFillColor(brandColor.cgColor)
+        let handle: CGFloat = 6
+        brandColor.setFill()
         for corner in [CGPoint(x: currentRect.minX, y: currentRect.minY),
                        CGPoint(x: currentRect.maxX, y: currentRect.minY),
                        CGPoint(x: currentRect.minX, y: currentRect.maxY),
                        CGPoint(x: currentRect.maxX, y: currentRect.maxY)] {
-            ctx.fillEllipse(in: CGRect(x: corner.x - handle/2, y: corner.y - handle/2,
-                                       width: handle, height: handle))
+            NSBezierPath(ovalIn: CGRect(x: corner.x - handle/2, y: corner.y - handle/2,
+                                        width: handle, height: handle)).fill()
         }
     }
 

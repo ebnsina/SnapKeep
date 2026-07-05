@@ -193,10 +193,17 @@ private struct RecentRow: View {
             }
             .frame(width: 46, height: 34)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.name).font(.system(size: 12.5, weight: .medium)).lineLimit(1)
-                Text(item.date, format: .relative(presentation: .named))
-                    .font(.system(size: 10.5)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.displayName).font(.system(size: 12.5, weight: .medium)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(item.ext)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    Text(item.date, format: .relative(presentation: .named))
+                        .font(.system(size: 10.5)).foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: Theme.Space.xs)
 

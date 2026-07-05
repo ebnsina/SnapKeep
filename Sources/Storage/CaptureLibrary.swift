@@ -7,6 +7,9 @@ struct CaptureItem: Identifiable, Hashable {
     let date: Date
     var url: URL { id }
     var name: String { id.lastPathComponent }
+    /// Clean name for display: no file extension.
+    var displayName: String { id.deletingPathExtension().lastPathComponent }
+    var ext: String { id.pathExtension.uppercased() }
     var isVideo: Bool { ["mp4", "mov"].contains(url.pathExtension.lowercased()) }
     var isAnimated: Bool { url.pathExtension.lowercased() == "gif" }
 }
