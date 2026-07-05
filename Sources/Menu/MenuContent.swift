@@ -7,6 +7,7 @@ struct MenuContent: View {
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
     @State private var showSearch = false
+    @State private var recentGrid = false
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -82,9 +83,13 @@ struct MenuContent: View {
 
     @ViewBuilder private var recent: some View {
         let items = filtered
-        HStack {
+        HStack(spacing: Theme.Space.xs) {
             Text("Recent").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Spacer()
+            iconButton(recentGrid ? "list.bullet" : "square.grid.2x2",
+                       label: recentGrid ? "List view" : "Grid view", small: true) {
+                withAnimation(Theme.Motion.snappy) { recentGrid.toggle() }
+            }
             iconButton("magnifyingglass", label: "Search", small: true, active: showSearch) {
                 withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
                 if showSearch { searchFocused = true } else { search = "" }
@@ -99,6 +104,10 @@ struct MenuContent: View {
                 Spacer()
             }
             .padding(.vertical, Theme.Space.sm)
+        } else if recentGrid {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                ForEach(items.prefix(6)) { RecentCell(item: $0) }
+            }
         } else {
             VStack(spacing: 2) {
                 ForEach(items.prefix(6)) { RecentRow(item: $0) }
@@ -246,5 +255,54 @@ private struct RowAction: View {
         }
         .buttonStyle(.plain).help(help).accessibilityLabel(help)
         .onHover { hovering = $0 }
+    }
+}
+
+// MARK: - Recent grid cell
+
+private struct RecentCell: View {
+    @Environment(AppState.self) private var app
+    @Environment(\.dismiss) private var dismiss
+    let item: CaptureItem
+    @State private var hovering = false
+
+    var body: some View {
+        let thumb = app.library.thumbnail(for: item)
+        Group {
+            if let thumb {
+                Image(nsImage: thumb).resizable().aspectRatio(contentMode: .fill)
+            } else {
+                Rectangle().fill(.quaternary)
+            }
+        }
+        .frame(height: 62)
+        .frame(maxWidth: .infinity)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+        .overlay {
+            if item.isVideo || item.isAnimated {
+                Image(systemName: item.isVideo ? "play.circle.fill" : "photo.stack.fill")
+                    .font(.system(size: 16)).foregroundStyle(.white).shadow(radius: 3)
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if hovering {
+                Button { app.library.remove(item) } label: {
+                    Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.white).frame(width: 15, height: 15)
+                        .background(.black.opacity(0.6), in: Circle())
+                }
+                .buttonStyle(.plain).help("Delete").accessibilityLabel("Delete").padding(3)
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
+                .strokeBorder(hovering ? Theme.accent : .white.opacity(0.08), lineWidth: hovering ? 2 : 1)
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .animation(Theme.Motion.snappy, value: hovering)
+        .onTapGesture { dismiss(); item.isVideo ? app.open(item) : app.copyToClipboard(item) }
+        .help(item.displayName)
+        .draggable(item.url)
     }
 }
