@@ -186,7 +186,5 @@ final class RegionSelectView: NSView {
         ctx.strokePath()
     }
 
-    private var brandColor: NSColor {
-        NSColor(red: 0.42, green: 0.36, blue: 0.96, alpha: 1)
-    }
+    private var brandColor: NSColor { Theme.accentNS }
 }

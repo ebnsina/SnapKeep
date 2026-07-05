@@ -30,7 +30,7 @@ final class EditorState {
         NSColor(red: 0.99, green: 0.73, blue: 0.02, alpha: 1), // amber
         NSColor(red: 0.20, green: 0.78, blue: 0.35, alpha: 1), // green
         NSColor(red: 0.20, green: 0.53, blue: 0.98, alpha: 1), // blue
-        NSColor(red: 0.42, green: 0.36, blue: 0.96, alpha: 1), // brand indigo
+        NSColor(red: 0.60, green: 0.10, blue: 0.20, alpha: 1), // brand dark cherry
         .white, .black
     ]
 

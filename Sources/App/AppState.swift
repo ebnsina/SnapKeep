@@ -33,6 +33,23 @@ final class AppState {
         ScreenPermissions.openSystemSettings()
     }
 
+    func openScreenRecordingSettings() {
+        ScreenPermissions.openSystemSettings()
+    }
+
+    /// Screen Recording permission only reaches a *freshly launched* process, so after the
+    /// user grants it we relaunch a new instance and quit this one.
+    func relaunch() {
+        let url = Bundle.main.bundleURL
+        let config = NSWorkspace.OpenConfiguration()
+        config.createsNewApplicationInstance = true
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, _ in }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            NSApp.terminate(nil)
+        }
+    }
+
     /// M0 action: capture the whole display, copy to clipboard, and save to ~/Pictures/SnapKeep.
     func captureFullScreen() {
         Task {

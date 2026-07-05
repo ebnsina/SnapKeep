@@ -28,13 +28,13 @@ final class EditorWindowController {
         let size = state.displaySize
         let win = NSWindow(
             contentRect: CGRect(origin: .zero, size: CGSize(width: size.width, height: size.height + 72)),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
         win.title = "\(Brand.name) — Edit"
-        win.titlebarAppearsTransparent = true
-        win.titleVisibility = .hidden
-        win.isMovableByWindowBackground = true
+        // The canvas handles its own drags for drawing, so the window must NOT move on a
+        // background drag. Use the title bar to move the window instead.
+        win.isMovableByWindowBackground = false
         win.contentView = hosting
         win.center()
         win.makeKeyAndOrderFront(nil)
