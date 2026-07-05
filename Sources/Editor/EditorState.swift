@@ -72,6 +72,13 @@ final class EditorState {
         onChange?()
     }
 
+    /// Replace the base image (same dimensions), e.g. after background removal. Undoable.
+    func replaceBase(_ image: CGImage) {
+        checkpoint()
+        baseImage = image
+        onChange?()
+    }
+
     func undo() {
         guard let prev = undoStack.popLast() else { return }
         redoStack.append(annotations)

@@ -11,6 +11,7 @@ struct EditorToolbar: View {
     let onBeautify: () -> Void
     let onPrint: () -> Void
     let onRedact: () -> Void
+    let onRemoveBg: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -91,6 +92,7 @@ struct EditorToolbar: View {
         Menu {
             Button { onCopyText() } label: { Label("Copy Text (OCR)", systemImage: "text.viewfinder") }
             Button { onRedact() } label: { Label("Redact Sensitive", systemImage: "eye.slash") }
+            Button { onRemoveBg() } label: { Label("Remove Background", systemImage: "person.and.background.dotted") }
             Button { onBeautify() } label: { Label("Beautify", systemImage: "wand.and.stars") }
             Button { onShare() } label: { Label("Share…", systemImage: "square.and.arrow.up") }
             Button { onPrint() } label: { Label("Print…", systemImage: "printer") }

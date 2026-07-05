@@ -26,6 +26,7 @@ final class EditorWindowController {
             onBeautify: { [weak self] in self?.beautify() },
             onPrint: { [weak self] in self?.printCapture() },
             onRedact: { [weak self] in self?.redact() },
+            onRemoveBg: { [weak self] in self?.removeBackground() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -135,6 +136,19 @@ final class EditorWindowController {
         }
     }
 
+    /// Lift the subject out of the capture (transparent background).
+    private func removeBackground() {
+        guard let state else { return }
+        let base = state.baseImage
+        Task {
+            if let cut = await BackgroundRemover.removeBackground(from: base), let state = self.state {
+                state.replaceBase(cut)
+            } else {
+                NSSound.beep()
+            }
+        }
+    }
+
     /// Open the Beautify window with the current flattened capture.
     private func beautify() {
         guard let state else { return }
@@ -172,6 +186,7 @@ private struct EditorRootView: View {
     let onBeautify: () -> Void
     let onPrint: () -> Void
     let onRedact: () -> Void
+    let onRemoveBg: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -181,7 +196,7 @@ private struct EditorRootView: View {
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
                           onShare: onShare, onCopyText: onCopyText,
                           onBeautify: onBeautify, onPrint: onPrint,
-                          onRedact: onRedact, onClose: onClose)
+                          onRedact: onRedact, onRemoveBg: onRemoveBg, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(Color(red: 0.11, green: 0.11, blue: 0.13)) // neutral editor mat

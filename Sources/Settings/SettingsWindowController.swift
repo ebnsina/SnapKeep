@@ -15,7 +15,9 @@ final class SettingsWindowController {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let hosting = NSHostingView(rootView: SettingsView(onRebind: { [weak app] in app?.reloadHotkeys() }))
+        let hosting = NSHostingView(rootView: SettingsView(
+            onRebind: { [weak app] in app?.reloadHotkeys() },
+            onShowWelcome: { [weak app] in app?.showOnboarding() }))
         let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 460, height: 440),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         win.title = "\(Brand.name) Settings"
@@ -31,6 +33,7 @@ final class SettingsWindowController {
 struct SettingsView: View {
     @Bindable private var settings = AppSettings.shared
     let onRebind: () -> Void
+    let onShowWelcome: () -> Void
 
     var body: some View {
         TabView {
@@ -114,6 +117,9 @@ struct SettingsView: View {
             Text(Brand.copyright)
                 .font(.caption2).foregroundStyle(.tertiary)
                 .padding(.top, Theme.Space.xs)
+            Button("Show Welcome Screen") { onShowWelcome() }
+                .buttonStyle(.bordered)
+                .padding(.top, Theme.Space.sm)
             Spacer()
         }
         .padding(Theme.Space.xl)
