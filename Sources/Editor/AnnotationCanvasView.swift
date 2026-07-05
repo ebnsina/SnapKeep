@@ -11,6 +11,11 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     private var moveLast: CGPoint?
     private var didCheckpointMove = false
 
+    // Resize state.
+    private var resizeOriginal: Annotation?
+    private var resizeAnchor: CGPoint?
+    private var resizeStartCorner: CGPoint?
+
     // Crop-tool drag state.
     private var cropStart: CGPoint?
     private var cropRect: CGRect?
@@ -53,15 +58,59 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
             ctx.setStrokeColor(Theme.accentNS.cgColor); ctx.setLineWidth(1.5); ctx.stroke(r)
         }
 
-        // Selection outline for the Select tool.
+        // Selection outline + resize handles for the Select tool.
         if state.tool == .select, let idx = state.selectedIndex {
-            let rect = state.annotations[idx].bounds.insetBy(dx: -4, dy: -4)
+            let rect = handleBounds(state.annotations[idx])
             ctx.setStrokeColor(Theme.accentNS.cgColor)
             ctx.setLineWidth(1.5)
             ctx.setLineDash(phase: 0, lengths: [5, 3])
             ctx.stroke(rect)
             ctx.setLineDash(phase: 0, lengths: [])
+            // Corner handles.
+            ctx.setLineDash(phase: 0, lengths: [])
+            for c in corners(rect) {
+                let h = CGRect(x: c.x - 4, y: c.y - 4, width: 8, height: 8)
+                ctx.setFillColor(NSColor.white.cgColor); ctx.fillEllipse(in: h)
+                ctx.setStrokeColor(Theme.accentNS.cgColor); ctx.setLineWidth(1.5); ctx.strokeEllipse(in: h)
+            }
         }
+    }
+
+    // MARK: Resize helpers
+
+    /// Bounds used for the selection outline + handles.
+    private func handleBounds(_ a: Annotation) -> CGRect { a.bounds.insetBy(dx: -4, dy: -4) }
+
+    /// Corners in a fixed order: 0 BL, 1 BR, 2 TL, 3 TR (so 3 - i is the diagonal opposite).
+    private func corners(_ b: CGRect) -> [CGPoint] {
+        [CGPoint(x: b.minX, y: b.minY), CGPoint(x: b.maxX, y: b.minY),
+         CGPoint(x: b.minX, y: b.maxY), CGPoint(x: b.maxX, y: b.maxY)]
+    }
+
+    /// Index of the handle near `p`, or nil.
+    private func resizeCornerHit(at p: CGPoint, annotation: Annotation) -> Int? {
+        let b = handleBounds(annotation)
+        for (i, c) in corners(b).enumerated() where hypot(p.x - c.x, p.y - c.y) <= 10 { return i }
+        return nil
+    }
+
+    private func resizeAnnotation(at idx: Int, original orig: Annotation,
+                                  anchor: CGPoint, start: CGPoint, to p: CGPoint) {
+        let minGap: CGFloat = 8
+        var q = p
+        if abs(q.x - anchor.x) < minGap { q.x = anchor.x + (start.x >= anchor.x ? minGap : -minGap) }
+        if abs(q.y - anchor.y) < minGap { q.y = anchor.y + (start.y >= anchor.y ? minGap : -minGap) }
+        let sx = (start.x - anchor.x) == 0 ? 1 : (q.x - anchor.x) / (start.x - anchor.x)
+        let sy = (start.y - anchor.y) == 0 ? 1 : (q.y - anchor.y) / (start.y - anchor.y)
+
+        var updated = orig
+        updated.points = orig.points.map {
+            CGPoint(x: anchor.x + ($0.x - anchor.x) * sx, y: anchor.y + ($0.y - anchor.y) * sy)
+        }
+        let avg = (abs(sx) + abs(sy)) / 2
+        if orig.kind == .text { updated.fontSize = max(8, orig.fontSize * avg) }
+        if orig.kind == .step { updated.lineWidth = max(1, orig.lineWidth * avg) }
+        state.annotations[idx] = updated
     }
 
     // MARK: Mouse
@@ -71,6 +120,16 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
 
         if state.tool == .select {
             window?.makeFirstResponder(self) // so Delete removes the selection
+            // If a corner handle of the selected annotation is grabbed, start resizing.
+            if let idx = state.selectedIndex,
+               let corner = resizeCornerHit(at: p, annotation: state.annotations[idx]) {
+                state.checkpoint()
+                let b = handleBounds(state.annotations[idx])
+                resizeOriginal = state.annotations[idx]
+                resizeStartCorner = corners(b)[corner]
+                resizeAnchor = corners(b)[3 - corner] // diagonal opposite
+                return
+            }
             state.selectedID = state.annotation(at: p)?.id
             moveLast = state.selectedID == nil ? nil : p
             didCheckpointMove = false
@@ -102,8 +161,14 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     override func mouseDragged(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
 
-        // Select tool: drag the selected annotation.
+        // Select tool: resize (if a handle is grabbed) or move.
         if state.tool == .select {
+            if let orig = resizeOriginal, let anchor = resizeAnchor, let start = resizeStartCorner,
+               let idx = state.selectedIndex {
+                resizeAnnotation(at: idx, original: orig, anchor: anchor, start: start, to: p)
+                needsDisplay = true
+                return
+            }
             guard let last = moveLast, let idx = state.selectedIndex else { return }
             if !didCheckpointMove { state.checkpoint(); didCheckpointMove = true }
             let delta = CGSize(width: p.x - last.x, height: p.y - last.y)
@@ -132,7 +197,11 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     }
 
     override func mouseUp(with event: NSEvent) {
-        if state.tool == .select { moveLast = nil; return }
+        if state.tool == .select {
+            moveLast = nil
+            resizeOriginal = nil; resizeAnchor = nil; resizeStartCorner = nil
+            return
+        }
         if state.tool == .crop {
             if let r = cropRect, r.width > 8, r.height > 8 { state.crop(to: r) }
             cropStart = nil; cropRect = nil
