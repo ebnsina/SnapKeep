@@ -103,7 +103,7 @@ struct SettingsView: View {
     private var about: some View {
         VStack(spacing: Theme.Space.sm) {
             Image(systemName: "camera.viewfinder")
-                .font(.system(size: 46)).foregroundStyle(Theme.brandGradient)
+                .font(.system(size: 46)).foregroundStyle(Theme.accent)
                 .padding(.bottom, Theme.Space.xs)
             Text(Brand.name).font(.title.bold())
             Text("Version \(Brand.version) (\(Brand.build))")

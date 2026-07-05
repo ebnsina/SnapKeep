@@ -32,7 +32,7 @@ struct MenuContent: View {
         HStack(spacing: Theme.Space.sm) {
             Image(systemName: "camera.viewfinder")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.brandGradient)
+                .foregroundStyle(Theme.accent)
             VStack(alignment: .leading, spacing: 0) {
                 Text(Brand.name).font(.headline)
                 Text(Brand.tagline)

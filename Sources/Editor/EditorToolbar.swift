@@ -139,7 +139,7 @@ private struct ToolbarIcon: View {
                 .background {
                     let shape = RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
                     if filled {
-                        shape.fill(Theme.brandGradient)
+                        shape.fill(Theme.accent)
                     } else if hovering {
                         shape.fill(.primary.opacity(0.1))
                     }

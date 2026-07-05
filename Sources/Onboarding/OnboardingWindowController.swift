@@ -69,10 +69,13 @@ private struct OnboardingView: View {
                 permission
                 Button(action: onFinish) {
                     Text("Get Started")
-                        .fontWeight(.semibold)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .buttonStyle(.borderedProminent).tint(Theme.accent).controlSize(.large)
+                .buttonStyle(.plain)
             }
             .padding(Theme.Space.xl)
         }
@@ -83,14 +86,14 @@ private struct OnboardingView: View {
     private var hero: some View {
         VStack(spacing: Theme.Space.md) {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Theme.brandGradient)
+                .fill(Theme.accent)
                 .frame(width: 84, height: 84)
                 .overlay(
                     Image(systemName: "camera.viewfinder")
                         .font(.system(size: 40, weight: .medium))
                         .foregroundStyle(.white)
                 )
-                .shadow(color: Theme.accent.opacity(0.4), radius: 16, y: 8)
+                .shadow(color: Theme.accent.opacity(0.35), radius: 14, y: 6)
             VStack(spacing: 4) {
                 Text("Welcome to \(Brand.name)").font(.largeTitle.bold())
                 Text("A fast, private screenshot and recording tool for macOS.")
@@ -101,7 +104,7 @@ private struct OnboardingView: View {
         .padding(.top, 44)
         .padding(.bottom, Theme.Space.xl)
         .background(
-            Theme.brandGradient.opacity(0.08)
+            Theme.accent.opacity(0.06)
                 .overlay(alignment: .bottom) { Divider() }
         )
     }
