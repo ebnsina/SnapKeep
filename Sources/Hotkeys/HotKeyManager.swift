@@ -5,17 +5,8 @@ import AppKit
 /// SnapKeep's menu is open, and needs no Accessibility permission (unlike a CGEvent tap).
 @MainActor
 final class HotKeyManager {
-    /// Identifies each registered action so the dispatch handler can route key presses.
-    enum Action: UInt32, CaseIterable {
-        case region = 1
-        case fullScreen = 2
-        case window = 3
-        case lastRegion = 4
-        case record = 5
-    }
-
     private var refs: [EventHotKeyRef?] = []
-    private var handlers: [Action: () -> Void] = [:]
+    private var handlers: [HotKeyAction: () -> Void] = [:]
     private var eventHandler: EventHandlerRef?
 
     /// The four-char signature Carbon uses to namespace our hotkey IDs.
@@ -31,15 +22,23 @@ final class HotKeyManager {
         handlers[.record] = record
 
         installDispatcher()
-        // ⌘⇧9 region, ⌘⇧4 full screen, ⌘⇧8 window, ⌘⇧7 recapture last, ⌘⇧6 record.
-        add(.region, keyCode: UInt32(kVK_ANSI_9), modifiers: UInt32(cmdKey | shiftKey))
-        add(.fullScreen, keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(cmdKey | shiftKey))
-        add(.window, keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey))
-        add(.lastRegion, keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey))
-        add(.record, keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey))
+        applyBindings()
+    }
+
+    /// Re-register all hotkeys from the current settings (call after a rebind).
+    func reload() { applyBindings() }
+
+    private func applyBindings() {
+        refs.forEach { if let r = $0 { UnregisterEventHotKey(r) } }
+        refs.removeAll()
+        for action in HotKeyAction.allCases {
+            let b = AppSettings.shared.binding(for: action)
+            add(action, keyCode: b.keyCode, modifiers: b.modifiers)
+        }
     }
 
     private func installDispatcher() {
+        guard eventHandler == nil else { return }
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard),
                                  eventKind: UInt32(kEventHotKeyPressed))
         let this = Unmanaged.passUnretained(self).toOpaque()
@@ -50,16 +49,16 @@ final class HotKeyManager {
                               EventParamType(typeEventHotKeyID), nil,
                               MemoryLayout<EventHotKeyID>.size, nil, &hkID)
             let manager = Unmanaged<HotKeyManager>.fromOpaque(userData).takeUnretainedValue()
-            if let action = Action(rawValue: hkID.id) {
+            if let action = HotKeyAction.allCases.first(where: { $0.carbonID == hkID.id }) {
                 MainActor.assumeIsolated { manager.handlers[action]?() }
             }
             return noErr
         }, 1, &spec, this, &eventHandler)
     }
 
-    private func add(_ action: Action, keyCode: UInt32, modifiers: UInt32) {
+    private func add(_ action: HotKeyAction, keyCode: UInt32, modifiers: UInt32) {
         var ref: EventHotKeyRef?
-        let id = EventHotKeyID(signature: signature, id: action.rawValue)
+        let id = EventHotKeyID(signature: signature, id: action.carbonID)
         RegisterEventHotKey(keyCode, modifiers, id, GetApplicationEventTarget(), 0, &ref)
         refs.append(ref)
     }

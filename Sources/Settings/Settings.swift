@@ -57,6 +57,22 @@ final class AppSettings {
     var hasCompletedOnboarding: Bool {
         didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
+    /// User overrides for global shortcuts (missing = the action's default).
+    var hotkeyBindings: [String: HotKeyBinding] {
+        didSet {
+            if let data = try? JSONEncoder().encode(hotkeyBindings) {
+                defaults.set(data, forKey: "hotkeyBindings")
+            }
+        }
+    }
+
+    func binding(for action: HotKeyAction) -> HotKeyBinding {
+        hotkeyBindings[action.rawValue] ?? action.defaultBinding
+    }
+    func setBinding(_ binding: HotKeyBinding, for action: HotKeyAction) {
+        hotkeyBindings[action.rawValue] = binding
+    }
+    func resetBindings() { hotkeyBindings = [:] }
 
     private init() {
         format = ImageFormat(rawValue: defaults.string(forKey: "format") ?? "png") ?? .png
@@ -68,6 +84,8 @@ final class AppSettings {
         recordFPS = defaults.object(forKey: "recordFPS") as? Int ?? 30
         recordSystemAudio = defaults.object(forKey: "recordSystemAudio") as? Bool ?? false
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
+        hotkeyBindings = (defaults.data(forKey: "hotkeyBindings")
+            .flatMap { try? JSONDecoder().decode([String: HotKeyBinding].self, from: $0) }) ?? [:]
     }
 
     var saveDirectory: URL {

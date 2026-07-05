@@ -5,6 +5,9 @@ import AppKit
 @MainActor
 final class SettingsWindowController {
     private var window: NSWindow?
+    private let app: AppState
+
+    init(app: AppState) { self.app = app }
 
     func show() {
         if let window {
@@ -12,8 +15,8 @@ final class SettingsWindowController {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let hosting = NSHostingView(rootView: SettingsView())
-        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 460, height: 420),
+        let hosting = NSHostingView(rootView: SettingsView(onRebind: { [weak app] in app?.reloadHotkeys() }))
+        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 460, height: 440),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         win.title = "\(Brand.name) Settings"
         win.contentView = hosting
@@ -27,6 +30,7 @@ final class SettingsWindowController {
 
 struct SettingsView: View {
     @Bindable private var settings = AppSettings.shared
+    let onRebind: () -> Void
 
     var body: some View {
         TabView {
@@ -34,7 +38,7 @@ struct SettingsView: View {
             shortcuts.tabItem { Label("Shortcuts", systemImage: "command") }
             about.tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 460, height: 420)
+        .frame(width: 460, height: 440)
     }
 
     private var general: some View {
@@ -73,25 +77,27 @@ struct SettingsView: View {
     private var shortcuts: some View {
         Form {
             Section("Global shortcuts") {
-                shortcutRow("Capture region", "⌘⇧9")
-                shortcutRow("Capture full screen", "⌘⇧4")
-                shortcutRow("Capture window", "⌘⇧8")
-                shortcutRow("Recapture last region", "⌘⇧7")
+                ForEach(HotKeyAction.allCases) { action in
+                    HStack {
+                        Text(action.title)
+                        Spacer()
+                        KeyRecorderField(binding: settings.binding(for: action)) { newBinding in
+                            settings.setBinding(newBinding, for: action)
+                            onRebind()
+                        }
+                    }
+                }
             }
-            Text("Customizable shortcuts are coming soon.")
+            Section {
+                Button("Reset to defaults") {
+                    settings.resetBindings()
+                    onRebind()
+                }
+            }
+            Text("Click a shortcut, then press the new key combination (needs a modifier).")
                 .font(.caption).foregroundStyle(.secondary)
         }
         .formStyle(.grouped)
-    }
-
-    private func shortcutRow(_ title: String, _ keys: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(keys).font(.system(.body, design: .rounded).weight(.medium))
-                .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
-        }
     }
 
     private var about: some View {

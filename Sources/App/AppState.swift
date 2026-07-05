@@ -246,10 +246,13 @@ final class AppState {
     // MARK: Settings & pins
 
     func openSettings() {
-        let controller = settingsWindow ?? SettingsWindowController()
+        let controller = settingsWindow ?? SettingsWindowController(app: self)
         settingsWindow = controller
         controller.show()
     }
+
+    /// Re-register global hotkeys after the user changes a binding.
+    func reloadHotkeys() { hotKeys.reload() }
 
     func showOnboarding() {
         let controller = onboarding ?? OnboardingWindowController(app: self)
