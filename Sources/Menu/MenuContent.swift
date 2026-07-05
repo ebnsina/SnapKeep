@@ -149,8 +149,10 @@ private struct MenuButton: View {
             .padding(.vertical, Theme.Space.xs)
             .padding(.horizontal, Theme.Space.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(hovering ? Theme.accent.opacity(0.12) : .clear,
+            .background(hovering ? Theme.accent.opacity(0.14) : .clear,
                         in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+            .contentShape(Rectangle())
+            .scaleEffect(hovering ? 1.015 : 1, anchor: .leading)
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }

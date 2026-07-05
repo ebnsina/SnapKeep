@@ -35,15 +35,24 @@ final class AppState {
 
     /// Start or stop a screen recording (MP4 or GIF per settings).
     func toggleRecording() {
+        let starting = !recorder.isRecording
         recorder.toggle { [weak self] url in
             guard let self else { return }
             if let url {
                 self.library.register(url)
                 self.lastSavedURL = url
                 self.flash("Recording saved")
+                NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording saved",
+                                               subtitle: url.lastPathComponent,
+                                               thumbnail: self.library.thumbnail(for: CaptureItem(id: url, date: Date())),
+                                               tint: .red)
             } else {
                 self.flash("Recording failed")
             }
+        }
+        if starting {
+            NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording…",
+                                           subtitle: "⌘⇧6 to stop", tint: .red)
         }
     }
 
@@ -151,7 +160,11 @@ final class AppState {
             let url = try CaptureStore.save(image)
             lastSavedURL = url
             library.register(url)
-            flash(AppSettings.shared.autoCopy ? "Saved and copied" : "Saved")
+            let copied = AppSettings.shared.autoCopy
+            flash(copied ? "Saved and copied" : "Saved")
+            NotchHUDController.shared.show(icon: "checkmark.circle.fill",
+                                           title: copied ? "Saved and copied" : "Saved",
+                                           subtitle: url.lastPathComponent, thumbnail: image)
         } catch {
             flash(error.localizedDescription)
         }
@@ -167,8 +180,12 @@ final class AppState {
                 self?.lastSavedURL = url
                 self?.library.register(url)
                 self?.flash("Saved")
+                NotchHUDController.shared.show(icon: "checkmark.circle.fill", title: "Saved",
+                                               subtitle: url.lastPathComponent,
+                                               thumbnail: NSImage(contentsOf: url))
             case .copied:
                 self?.flash("Copied")
+                NotchHUDController.shared.show(icon: "doc.on.doc.fill", title: "Copied to clipboard")
             case .closed:
                 break
             }
@@ -203,6 +220,8 @@ final class AppState {
         guard let image = NSImage(contentsOf: item.url) else { return }
         CaptureStore.copyToClipboard(image)
         flash("Copied")
+        NotchHUDController.shared.show(icon: "doc.on.doc.fill", title: "Copied to clipboard",
+                                       thumbnail: image)
     }
 
     func reveal(_ item: CaptureItem) {

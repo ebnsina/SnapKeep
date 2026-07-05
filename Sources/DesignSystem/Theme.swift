@@ -23,11 +23,15 @@ enum Theme {
         static let pill: CGFloat = 999
     }
 
-    // MARK: Motion
+    // MARK: Motion — interactive springs tuned to feel light and responsive.
     enum Motion {
-        static let snappy: Animation = .snappy(duration: 0.28)
-        static let smooth: Animation = .smooth(duration: 0.35)
-        static let bouncy: Animation = .bouncy(duration: 0.5, extraBounce: 0.15)
+        /// Quick hover/tap feedback. Response low, well-damped (no wobble).
+        static let snappy: Animation = .spring(response: 0.26, dampingFraction: 0.78)
+        /// General transitions between states.
+        static let smooth: Animation = .spring(response: 0.38, dampingFraction: 0.82)
+        /// The Dynamic-Island-style expand: springy with a touch of overshoot.
+        static let island: Animation = .spring(response: 0.42, dampingFraction: 0.68)
+        static let bouncy: Animation = .spring(response: 0.5, dampingFraction: 0.6)
     }
 
     // MARK: Brand color — Honolulu Blue the whole app leans on.
