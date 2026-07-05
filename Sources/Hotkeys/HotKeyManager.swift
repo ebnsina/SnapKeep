@@ -14,12 +14,13 @@ final class HotKeyManager {
 
     func register(region: @escaping () -> Void, fullScreen: @escaping () -> Void,
                   window: @escaping () -> Void, lastRegion: @escaping () -> Void,
-                  record: @escaping () -> Void) {
+                  record: @escaping () -> Void, palette: @escaping () -> Void) {
         handlers[.region] = region
         handlers[.fullScreen] = fullScreen
         handlers[.window] = window
         handlers[.lastRegion] = lastRegion
         handlers[.record] = record
+        handlers[.palette] = palette
 
         installDispatcher()
         applyBindings()

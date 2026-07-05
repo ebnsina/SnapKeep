@@ -39,7 +39,7 @@ struct HotKeyBinding: Codable, Equatable {
 
 /// The capture actions that can be bound to a global shortcut.
 enum HotKeyAction: String, CaseIterable, Identifiable {
-    case region, fullScreen, window, lastRegion, record
+    case region, fullScreen, window, lastRegion, record, palette
     var id: String { rawValue }
 
     var title: String {
@@ -49,6 +49,7 @@ enum HotKeyAction: String, CaseIterable, Identifiable {
         case .window: return "Capture window"
         case .lastRegion: return "Recapture last region"
         case .record: return "Record screen"
+        case .palette: return "Command palette"
         }
     }
 
@@ -60,6 +61,7 @@ enum HotKeyAction: String, CaseIterable, Identifiable {
         case .window: return 3
         case .lastRegion: return 4
         case .record: return 5
+        case .palette: return 6
         }
     }
 
@@ -71,6 +73,7 @@ enum HotKeyAction: String, CaseIterable, Identifiable {
         case .window:     return .init(keyCode: UInt32(kVK_ANSI_8), modifiers: cmdShift, display: "⌘⇧8")
         case .lastRegion: return .init(keyCode: UInt32(kVK_ANSI_7), modifiers: cmdShift, display: "⌘⇧7")
         case .record:     return .init(keyCode: UInt32(kVK_ANSI_6), modifiers: cmdShift, display: "⌘⇧6")
+        case .palette:    return .init(keyCode: UInt32(kVK_ANSI_K), modifiers: cmdShift, display: "⌘⇧K")
         }
     }
 }

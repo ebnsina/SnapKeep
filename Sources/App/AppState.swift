@@ -33,7 +33,8 @@ final class AppState {
             fullScreen: { [weak self] in self?.captureFullScreen() },
             window: { [weak self] in self?.captureWindow() },
             lastRegion: { [weak self] in self?.recaptureLastRegion() },
-            record: { [weak self] in self?.toggleRecording() }
+            record: { [weak self] in self?.toggleRecording() },
+            palette: { [weak self] in self?.togglePalette() }
         )
     }
 
@@ -253,6 +254,28 @@ final class AppState {
 
     /// Re-register global hotkeys after the user changes a binding.
     func reloadHotkeys() { hotKeys.reload() }
+
+    /// Open (or close) the ⌘K command palette with all actions + recent captures.
+    func togglePalette() {
+        var commands: [Command] = [
+            Command(title: "Capture Region", subtitle: "⌘⇧9", symbol: "rectangle.dashed") { [weak self] in self?.captureRegion() },
+            Command(title: "Capture Window", subtitle: "⌘⇧8", symbol: "macwindow") { [weak self] in self?.captureWindow() },
+            Command(title: "Capture Full Screen", subtitle: "⌘⇧4", symbol: "rectangle.inset.filled") { [weak self] in self?.captureFullScreen() },
+            Command(title: "Scrolling Capture", subtitle: nil, symbol: "arrow.down.doc") { [weak self] in self?.scrollingCapture() },
+            Command(title: "Recapture Last Region", subtitle: "⌘⇧7", symbol: "arrow.clockwise") { [weak self] in self?.recaptureLastRegion() },
+            Command(title: recorder.isRecording ? "Stop Recording" : "Record Screen", subtitle: "⌘⇧6",
+                    symbol: recorder.isRecording ? "stop.circle.fill" : "record.circle") { [weak self] in self?.toggleRecording() },
+            Command(title: "Record Region", subtitle: nil, symbol: "rectangle.dashed.badge.record") { [weak self] in self?.recordRegion() },
+            Command(title: "Settings…", subtitle: nil, symbol: "gearshape") { [weak self] in self?.openSettings() },
+            Command(title: "Show Welcome", subtitle: nil, symbol: "sparkles") { [weak self] in self?.showOnboarding() }
+        ]
+        for item in library.items.prefix(5) {
+            commands.append(Command(title: "Copy “\(item.displayName)”", subtitle: item.ext, symbol: "doc.on.doc") {
+                [weak self] in self?.copyToClipboard(item)
+            })
+        }
+        CommandPaletteController.shared.toggle(commands: commands)
+    }
 
     func showOnboarding() {
         let controller = onboarding ?? OnboardingWindowController(app: self)
