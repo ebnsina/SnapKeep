@@ -92,6 +92,11 @@ struct EditorToolbar: View {
             Button { onBeautify() } label: { Label("Beautify", systemImage: "wand.and.stars") }
             Button { onShare() } label: { Label("Share…", systemImage: "square.and.arrow.up") }
             Button { onPrint() } label: { Label("Print…", systemImage: "printer") }
+            Divider()
+            Button { state.rotate(clockwise: false) } label: { Label("Rotate Left", systemImage: "rotate.left") }
+            Button { state.rotate(clockwise: true) } label: { Label("Rotate Right", systemImage: "rotate.right") }
+            Button { state.flipHorizontal() } label: { Label("Flip Horizontal", systemImage: "arrow.left.and.right") }
+            Button { state.flipVertical() } label: { Label("Flip Vertical", systemImage: "arrow.up.and.down") }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 13.5, weight: .medium))

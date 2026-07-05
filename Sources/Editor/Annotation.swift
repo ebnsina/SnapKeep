@@ -4,12 +4,13 @@ import AppKit
 /// is shared by the live canvas and the final export so what you see is what you save.
 struct Annotation: Identifiable {
     enum Kind: String, CaseIterable, Identifiable {
-        case select, pen, marker, line, arrow, rect, ellipse, text, step, pixelate
+        case select, crop, pen, marker, line, arrow, rect, ellipse, text, step, pixelate
         var id: String { rawValue }
 
         var symbol: String {
             switch self {
             case .select: return "cursorarrow"
+            case .crop: return "crop"
             case .pen: return "pencil.tip"
             case .marker: return "highlighter"
             case .line: return "line.diagonal"
@@ -25,6 +26,7 @@ struct Annotation: Identifiable {
         var title: String {
             switch self {
             case .select: return "Select / move"
+            case .crop: return "Crop"
             case .pen: return "Pen"
             case .marker: return "Marker"
             case .line: return "Line"
@@ -91,8 +93,8 @@ struct Annotation: Identifiable {
         ctx.setLineWidth(lineWidth)
 
         switch kind {
-        case .select:
-            break // not a drawable; select is an interaction mode
+        case .select, .crop:
+            break // not drawables; interaction modes
         case .pen:
             strokePath(ctx, points: points)
         case .marker:

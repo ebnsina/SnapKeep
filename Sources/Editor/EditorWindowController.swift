@@ -29,9 +29,8 @@ final class EditorWindowController {
         )
 
         let hosting = NSHostingView(rootView: root)
-        let size = state.displaySize
         let win = NSWindow(
-            contentRect: CGRect(origin: .zero, size: CGSize(width: size.width, height: size.height + 72)),
+            contentRect: CGRect(origin: .zero, size: contentSize(for: state.displaySize)),
             styleMask: [.titled, .closable],
             backing: .buffered, defer: false
         )
@@ -45,6 +44,20 @@ final class EditorWindowController {
         win.isReleasedWhenClosed = false
         NSApp.activate(ignoringOtherApps: true)
         self.window = win
+
+        // Crop/rotate change the canvas size — resize the window to fit.
+        state.onGeometryChange = { [weak self] in self?.resizeToFit() }
+    }
+
+    /// Window content size for a given canvas size (toolbar chrome + a sensible min width).
+    private func contentSize(for canvas: CGSize) -> CGSize {
+        CGSize(width: max(canvas.width, 560), height: canvas.height + 72)
+    }
+
+    private func resizeToFit() {
+        guard let window, let state else { return }
+        window.setContentSize(contentSize(for: state.displaySize))
+        window.center()
     }
 
     private func copy() {
@@ -146,5 +159,11 @@ private struct EditorRootView: View {
 private struct CanvasRepresentable: NSViewRepresentable {
     let state: EditorState
     func makeNSView(context: Context) -> AnnotationCanvasView { AnnotationCanvasView(state: state) }
-    func updateNSView(_ nsView: AnnotationCanvasView, context: Context) {}
+    func updateNSView(_ nsView: AnnotationCanvasView, context: Context) {
+        // Keep the AppKit view in step with the (possibly cropped/rotated) canvas size.
+        if nsView.frame.size != state.displaySize {
+            nsView.frame = CGRect(origin: .zero, size: state.displaySize)
+        }
+        nsView.needsDisplay = true
+    }
 }

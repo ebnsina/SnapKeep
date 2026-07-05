@@ -11,6 +11,10 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     private var moveLast: CGPoint?
     private var didCheckpointMove = false
 
+    // Crop-tool drag state.
+    private var cropStart: CGPoint?
+    private var cropRect: CGRect?
+
     init(state: EditorState) {
         self.state = state
         super.init(frame: CGRect(origin: .zero, size: state.displaySize))
@@ -33,6 +37,16 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
         }
         draft?.render(in: ctx, base: state.baseImage, scale: state.scale)
 
+        // Crop overlay: dim outside the dragged rect.
+        if state.tool == .crop, let r = cropRect, r.width > 0, r.height > 0 {
+            ctx.setFillColor(NSColor.black.withAlphaComponent(0.45).cgColor)
+            ctx.fill(bounds)
+            ctx.setBlendMode(.clear); ctx.fill(r); ctx.setBlendMode(.normal)
+            ctx.saveGState(); ctx.clip(to: r); ctx.draw(state.baseImage, in: bounds); ctx.restoreGState()
+            for a in state.annotations { a.render(in: ctx, base: state.baseImage, scale: state.scale) }
+            ctx.setStrokeColor(Theme.accentNS.cgColor); ctx.setLineWidth(1.5); ctx.stroke(r)
+        }
+
         // Selection outline for the Select tool.
         if state.tool == .select, let idx = state.selectedIndex {
             let rect = state.annotations[idx].bounds.insetBy(dx: -4, dy: -4)
@@ -54,6 +68,12 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
             state.selectedID = state.annotation(at: p)?.id
             moveLast = state.selectedID == nil ? nil : p
             didCheckpointMove = false
+            needsDisplay = true
+            return
+        }
+        if state.tool == .crop {
+            cropStart = p
+            cropRect = .zero
             needsDisplay = true
             return
         }
@@ -86,6 +106,13 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
             needsDisplay = true
             return
         }
+        // Crop tool: rubber-band a crop rect.
+        if state.tool == .crop, let s = cropStart {
+            cropRect = CGRect(x: min(s.x, p.x), y: min(s.y, p.y),
+                              width: abs(p.x - s.x), height: abs(p.y - s.y))
+            needsDisplay = true
+            return
+        }
 
         guard var current = draft else { return }
         switch current.kind {
@@ -100,6 +127,12 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
 
     override func mouseUp(with event: NSEvent) {
         if state.tool == .select { moveLast = nil; return }
+        if state.tool == .crop {
+            if let r = cropRect, r.width > 8, r.height > 8 { state.crop(to: r) }
+            cropStart = nil; cropRect = nil
+            needsDisplay = true
+            return
+        }
         guard let current = draft else { return }
         draft = nil
         // Ignore accidental taps that produced no real geometry.

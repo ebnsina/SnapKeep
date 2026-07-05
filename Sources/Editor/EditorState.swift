@@ -6,10 +6,13 @@ import SwiftUI
 @MainActor
 @Observable
 final class EditorState {
-    let baseImage: CGImage
-    /// On-screen size in points (pixels ÷ backing scale).
-    let displaySize: CGSize
+    private(set) var baseImage: CGImage
+    /// On-screen size in points (pixels ÷ backing scale). Changes on crop/rotate.
+    private(set) var displaySize: CGSize
     let scale: CGFloat
+
+    /// Set by the controller so window + canvas resize when the geometry changes.
+    @ObservationIgnored var onGeometryChange: (() -> Void)?
 
     var annotations: [Annotation] = []
     var tool: Annotation.Kind = .arrow
@@ -91,6 +94,63 @@ final class EditorState {
         annotations.remove(at: idx)
         selectedID = nil
         onChange?()
+    }
+
+    // MARK: Transforms (crop / rotate / flip)
+
+    private func remap(_ transform: (CGPoint) -> CGPoint) {
+        annotations = annotations.map { a in
+            var copy = a
+            copy.points = a.points.map(transform)
+            return copy
+        }
+    }
+
+    /// Rotate 90°. Point space is y-up, so a clockwise turn maps (x,y) → (y, W − x).
+    func rotate(clockwise: Bool) {
+        guard let rotated = ImageOps.rotate(baseImage, clockwise: clockwise) else { return }
+        checkpoint()
+        let W = displaySize.width, H = displaySize.height
+        baseImage = rotated
+        displaySize = CGSize(width: H, height: W)
+        if clockwise { remap { CGPoint(x: $0.y, y: W - $0.x) } }
+        else { remap { CGPoint(x: H - $0.y, y: $0.x) } }
+        selectedID = nil
+        onChange?(); onGeometryChange?()
+    }
+
+    func flipHorizontal() {
+        guard let flipped = ImageOps.flipHorizontal(baseImage) else { return }
+        checkpoint()
+        let W = displaySize.width
+        baseImage = flipped
+        remap { CGPoint(x: W - $0.x, y: $0.y) }
+        onChange?()
+    }
+
+    func flipVertical() {
+        guard let flipped = ImageOps.flipVertical(baseImage) else { return }
+        checkpoint()
+        let H = displaySize.height
+        baseImage = flipped
+        remap { CGPoint(x: $0.x, y: H - $0.y) }
+        onChange?()
+    }
+
+    /// Crop to a rect in point space (y-up, origin bottom-left).
+    func crop(to rect: CGRect) {
+        let r = rect.intersection(CGRect(origin: .zero, size: displaySize))
+        guard r.width > 8, r.height > 8 else { return }
+        // Point space (bottom-left) → base pixels (top-left).
+        let px = CGRect(x: r.minX * scale, y: (displaySize.height - r.maxY) * scale,
+                        width: r.width * scale, height: r.height * scale)
+        guard let cropped = baseImage.cropping(to: px) else { return }
+        checkpoint()
+        baseImage = cropped
+        displaySize = r.size
+        remap { CGPoint(x: $0.x - r.minX, y: $0.y - r.minY) }
+        selectedID = nil
+        onChange?(); onGeometryChange?()
     }
 
     // MARK: Export
