@@ -127,7 +127,13 @@ final class AppState {
     }
 
     func refreshAuthorization() {
-        isAuthorized = ScreenPermissions.isAuthorized
+        // CGPreflightScreenCaptureAccess() false-negatives (esp. for ad-hoc-signed apps), so
+        // trust it only when it says yes; otherwise confirm with ScreenCaptureKit, which is
+        // the same path capture actually uses.
+        if ScreenPermissions.isAuthorized { isAuthorized = true; return }
+        Task { @MainActor in
+            isAuthorized = await CaptureEngine.shared.primePermission()
+        }
     }
 
     /// Called once at launch: touch ScreenCaptureKit so macOS shows its native prompt and

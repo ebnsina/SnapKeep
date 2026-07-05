@@ -35,6 +35,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Re-check Screen Recording each time the app is brought forward — so returning from
+    /// System Settings after granting clears the prompt without a manual relaunch.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        app.refreshAuthorization()
+    }
+
     /// Keep exactly one SnapKeep alive: the newest launch wins and quits any older instances
     /// (also makes the relaunch-for-permission flow clean).
     private func terminateOtherInstances() {
