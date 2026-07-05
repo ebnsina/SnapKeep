@@ -4,7 +4,6 @@ import AppKit
 /// cutout for the current selection, live dimensions, crosshair guides, and a magnifier loupe.
 final class RegionSelectView: NSView {
     private let frozen: NSImage
-    private let blurred: NSImage
     private let onComplete: (CGRect?) -> Void
     private let cornerRadius: CGFloat = 12 // rounded-xl
 
@@ -13,9 +12,8 @@ final class RegionSelectView: NSView {
     private var mouseLocation: CGPoint = .zero
     private var isDragging = false
 
-    init(frame: CGRect, frozen: NSImage, blurred: NSImage, onComplete: @escaping (CGRect?) -> Void) {
+    init(frame: CGRect, frozen: NSImage, onComplete: @escaping (CGRect?) -> Void) {
         self.frozen = frozen
-        self.blurred = blurred
         self.onComplete = onComplete
         super.init(frame: frame)
     }
@@ -74,25 +72,28 @@ final class RegionSelectView: NSView {
     override func draw(_ dirtyRect: CGRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
 
-        // 1. Blurred screenshot as the backdrop, with a light dim for contrast.
-        blurred.draw(in: bounds)
-        ctx.setFillColor(NSColor.black.withAlphaComponent(0.22).cgColor)
-        ctx.fill(bounds)
+        // 1. Sharp screenshot everywhere — you always see what you're capturing.
+        frozen.draw(in: bounds)
 
         let hasSelection = currentRect.width > 0 && currentRect.height > 0
 
         if hasSelection {
-            // 2. Show the crisp screenshot inside a rounded-xl selection window.
+            // 2. Dim only OUTSIDE the selection; keep the rounded-xl selection crisp.
             let radius = min(cornerRadius, min(currentRect.width, currentRect.height) / 2)
             let path = NSBezierPath(roundedRect: currentRect, xRadius: radius, yRadius: radius)
+            ctx.setFillColor(NSColor.black.withAlphaComponent(0.4).cgColor)
+            ctx.fill(bounds)
             ctx.saveGState()
             path.addClip()
-            frozen.draw(in: bounds)
+            frozen.draw(in: bounds) // restore full brightness inside the selection
             ctx.restoreGState()
 
             drawSelectionBorder(path)
             drawDimensionPill()
         } else {
+            // Before dragging: a light dim + crosshair, screen still clearly visible.
+            ctx.setFillColor(NSColor.black.withAlphaComponent(0.12).cgColor)
+            ctx.fill(bounds)
             drawCrosshair(ctx)
         }
 

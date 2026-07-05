@@ -1,5 +1,4 @@
 import AppKit
-import CoreImage
 
 /// Drives the freeze-frame region capture flow:
 /// capture the screen → show a full-screen overlay → let the user drag a selection →
@@ -39,24 +38,14 @@ final class RegionCaptureController {
         }
         frozenCG = cg
         let frozen = NSImage(cgImage: cg, size: screen.frame.size)
-        let blurredCG = Self.blur(cg, radius: CGFloat(scale) * 12) ?? cg
-        let blurred = NSImage(cgImage: blurredCG, size: screen.frame.size)
 
         return await withCheckedContinuation { cont in
             self.continuation = cont
-            presentOverlay(on: screen, frozen: frozen, blurred: blurred)
+            presentOverlay(on: screen, frozen: frozen)
         }
     }
 
-    /// Gaussian-blur a CGImage for the region overlay backdrop.
-    private static func blur(_ image: CGImage, radius: CGFloat) -> CGImage? {
-        let input = CIImage(cgImage: image)
-        let blurred = input.clampedToExtent()
-            .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: radius])
-        return CIContext().createCGImage(blurred, from: input.extent)
-    }
-
-    private func presentOverlay(on screen: NSScreen, frozen: NSImage, blurred: NSImage) {
+    private func presentOverlay(on screen: NSScreen, frozen: NSImage) {
         let win = NSWindow(contentRect: screen.frame, styleMask: .borderless,
                            backing: .buffered, defer: false)
         win.level = .screenSaver
@@ -67,7 +56,7 @@ final class RegionCaptureController {
         win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
         let view = RegionSelectView(frame: CGRect(origin: .zero, size: screen.frame.size),
-                                    frozen: frozen, blurred: blurred) { [weak self] rect in
+                                    frozen: frozen) { [weak self] rect in
             self?.finish(with: rect)
         }
         win.contentView = view
