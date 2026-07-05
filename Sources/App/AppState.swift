@@ -9,6 +9,8 @@ final class AppState {
     var lastSavedURL: URL?
     var statusMessage: String?
 
+    let library = CaptureLibrary()
+
     private let regionController = RegionCaptureController()
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
@@ -39,6 +41,7 @@ final class AppState {
                 CaptureStore.copyToClipboard(image)
                 let url = try CaptureStore.savePNG(image)
                 lastSavedURL = url
+                library.register(url)
                 flash("Saved and copied")
             } catch {
                 flash(error.localizedDescription)
@@ -57,6 +60,7 @@ final class AppState {
                 switch result {
                 case .saved(let url):
                     self?.lastSavedURL = url
+                    self?.library.register(url)
                     self?.flash("Saved and copied")
                 case .copied:
                     self?.flash("Copied")
@@ -71,6 +75,17 @@ final class AppState {
     func revealLastInFinder() {
         guard let url = lastSavedURL else { return }
         NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    /// Copy a saved capture's image back onto the clipboard.
+    func copyToClipboard(_ item: CaptureItem) {
+        guard let image = NSImage(contentsOf: item.url) else { return }
+        CaptureStore.copyToClipboard(image)
+        flash("Copied")
+    }
+
+    func reveal(_ item: CaptureItem) {
+        NSWorkspace.shared.activateFileViewerSelecting([item.url])
     }
 
     private func flash(_ message: String) {

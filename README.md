@@ -22,6 +22,10 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
   ellipse, and text, in any color and stroke width, with full undo/redo.
 - **Full-screen capture** — `⌘⇧4`, instantly copied to the clipboard and saved.
 - **System-wide hotkeys** — capture without opening the menu.
+- **History grid** — recent captures in the menu bar; click to copy, drag into any
+  app, or right-click to reveal, share, or delete.
+- **Native sharing** — send any capture via AirDrop, Messages, Mail, or Notes. No
+  accounts, no uploads.
 - **Copy and save at once** — PNGs land in `~/Pictures/SnapKeep`.
 - **Beautiful menu-bar UI** — translucent, spring-animated, light and dark mode.
 - **Private by design** — no network calls, no telemetry.

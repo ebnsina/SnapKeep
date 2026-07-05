@@ -10,6 +10,8 @@ struct MenuContent: View {
 
             if app.isAuthorized {
                 actions
+                Divider().opacity(0.4)
+                HistoryGrid()
             } else {
                 permissionPrompt
             }
@@ -20,6 +22,7 @@ struct MenuContent: View {
         }
         .padding(Theme.Space.md)
         .frame(width: 300)
+        .onAppear { app.library.reload() }
     }
 
     // MARK: Sections
@@ -51,13 +54,6 @@ struct MenuContent: View {
                 app.captureFullScreen()
             }
             .keyboardShortcut("4", modifiers: [.command, .shift])
-
-            if app.lastSavedURL != nil {
-                MenuButton(title: "Reveal Last in Finder", subtitle: nil,
-                           symbol: "folder") {
-                    app.revealLastInFinder()
-                }
-            }
         }
     }
 

@@ -6,6 +6,7 @@ struct EditorToolbar: View {
     @Bindable var state: EditorState
     let onCopy: () -> Void
     let onSave: () -> Void
+    let onShare: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -80,6 +81,8 @@ struct EditorToolbar: View {
         HStack(spacing: Theme.Space.xs) {
             Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
                 .help("Copy to clipboard")
+            Button(action: onShare) { Label("Share", systemImage: "square.and.arrow.up") }
+                .help("Share via AirDrop, Messages, Mail…")
             Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
                 .buttonStyle(.borderedProminent).tint(Theme.accent)
                 .help("Save PNG")

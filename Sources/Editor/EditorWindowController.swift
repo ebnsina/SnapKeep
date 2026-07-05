@@ -20,6 +20,7 @@ final class EditorWindowController {
             state: state,
             onCopy: { [weak self] in self?.copy() },
             onSave: { [weak self] in self?.save() },
+            onShare: { [weak self] in self?.share() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -59,6 +60,14 @@ final class EditorWindowController {
         }
     }
 
+    /// Present the native share sheet for the current (flattened) capture.
+    private func share() {
+        guard let state, let view = window?.contentView else { return }
+        let name = CaptureStore.suggestedName()
+        guard let url = ShareHelper.temporaryPNG(for: state.flatten(), name: name) else { return }
+        ShareHelper.present(items: [url], from: view)
+    }
+
     private func finish(_ result: Result) {
         window?.orderOut(nil)
         window = nil
@@ -74,13 +83,15 @@ private struct EditorRootView: View {
     @Bindable var state: EditorState
     let onCopy: () -> Void
     let onSave: () -> Void
+    let onShare: () -> Void
     let onClose: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             CanvasRepresentable(state: state)
                 .frame(width: state.displaySize.width, height: state.displaySize.height)
-            EditorToolbar(state: state, onCopy: onCopy, onSave: onSave, onClose: onClose)
+            EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
+                          onShare: onShare, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(.black)
