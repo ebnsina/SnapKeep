@@ -53,6 +53,10 @@ final class AppSettings {
     var recordSystemAudio: Bool {
         didSet { defaults.set(recordSystemAudio, forKey: "recordSystemAudio") }
     }
+    /// Whether the first-run welcome has been dismissed.
+    var hasCompletedOnboarding: Bool {
+        didSet { defaults.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+    }
 
     private init() {
         format = ImageFormat(rawValue: defaults.string(forKey: "format") ?? "png") ?? .png
@@ -63,6 +67,7 @@ final class AppSettings {
         recordFormat = RecordFormat(rawValue: defaults.string(forKey: "recordFormat") ?? "mp4") ?? .mp4
         recordFPS = defaults.object(forKey: "recordFPS") as? Int ?? 30
         recordSystemAudio = defaults.object(forKey: "recordSystemAudio") as? Bool ?? false
+        hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
     }
 
     var saveDirectory: URL {

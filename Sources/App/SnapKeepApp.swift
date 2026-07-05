@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         terminateOtherInstances()
         app.installGlobalHotkeys()
         app.primePermissionOnLaunch()
+        if !AppSettings.shared.hasCompletedOnboarding {
+            app.showOnboarding()
+        }
     }
 
     /// Keep exactly one SnapKeep alive: the newest launch wins and quits any older instances

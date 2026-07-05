@@ -20,6 +20,7 @@ final class AppState {
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
     private var settingsWindow: SettingsWindowController?
+    private var onboarding: OnboardingWindowController?
     private var pins: [PinWindowController] = []
 
     /// Remembers the last region so it can be recaptured with one shortcut.
@@ -247,6 +248,12 @@ final class AppState {
     func openSettings() {
         let controller = settingsWindow ?? SettingsWindowController()
         settingsWindow = controller
+        controller.show()
+    }
+
+    func showOnboarding() {
+        let controller = onboarding ?? OnboardingWindowController(app: self)
+        onboarding = controller
         controller.show()
     }
 
