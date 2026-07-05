@@ -345,7 +345,7 @@ private struct StudioView: View {
 
     var body: some View {
         VStack(spacing: Theme.Space.lg) {
-            VideoPlayer(player: model.player)
+            PlayerView(player: model.player)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
                 .overlay(alignment: .bottom) {
@@ -501,6 +501,22 @@ private struct StudioView: View {
 
     private func timeString(_ s: Double) -> String {
         String(format: "%d:%02d", Int(s) / 60, Int(s) % 60)
+    }
+}
+
+/// AppKit AVPlayerView wrapper — avoids a Swift-runtime crash instantiating SwiftUI's
+/// generic `VideoPlayer` metadata on this OS/toolchain.
+private struct PlayerView: NSViewRepresentable {
+    let player: AVPlayer
+    func makeNSView(context: Context) -> AVPlayerView {
+        let v = AVPlayerView()
+        v.player = player
+        v.controlsStyle = .inline
+        v.videoGravity = .resizeAspect
+        return v
+    }
+    func updateNSView(_ nsView: AVPlayerView, context: Context) {
+        if nsView.player !== player { nsView.player = player }
     }
 }
 
