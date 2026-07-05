@@ -35,6 +35,10 @@ struct MenuContent: View {
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
             Text(Brand.name).font(.headline)
             Spacer()
+            iconButton(recentGrid ? "list.bullet" : "square.grid.2x2",
+                       label: recentGrid ? "List view" : "Grid view") {
+                withAnimation(Theme.Motion.snappy) { recentGrid.toggle() }
+            }
             iconButton("gearshape", label: "Settings") { dismiss(); app.openSettings() }
             iconButton("power", label: "Quit") { NSApp.terminate(nil) }
         }
@@ -86,10 +90,6 @@ struct MenuContent: View {
         HStack(spacing: Theme.Space.xs) {
             Text("Recent").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Spacer()
-            iconButton(recentGrid ? "list.bullet" : "square.grid.2x2",
-                       label: recentGrid ? "List view" : "Grid view", small: true) {
-                withAnimation(Theme.Motion.snappy) { recentGrid.toggle() }
-            }
             iconButton("magnifyingglass", label: "Search", small: true, active: showSearch) {
                 withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
                 if showSearch { searchFocused = true } else { search = "" }

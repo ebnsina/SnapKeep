@@ -16,48 +16,50 @@ struct Command: Identifiable {
 final class CommandPaletteController {
     static let shared = CommandPaletteController()
 
-    private var panel: NSPanel?
-    private var commands: [Command] = []
+    private var window: NSWindow?
+    private var observer: NSObjectProtocol?
 
     func toggle(commands: [Command]) {
-        if panel != nil { close() } else { present(commands: commands) }
+        if window != nil { close() } else { present(commands: commands) }
     }
 
     private func present(commands: [Command]) {
-        self.commands = commands
         let view = CommandPaletteView(commands: commands,
                                       onRun: { [weak self] cmd in self?.close(); cmd.run() },
                                       onClose: { [weak self] in self?.close() })
-        let panel = KeyablePanel(contentRect: CGRect(x: 0, y: 0, width: 560, height: 420),
-                                 styleMask: [.borderless],
-                                 backing: .buffered, defer: false)
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.isFloatingPanel = true
-        panel.becomesKeyOnlyIfNeeded = false // must become key to type/navigate
-        panel.level = .modalPanel
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .moveToActiveSpace]
-        panel.contentView = NSHostingView(rootView: view)
+        let win = KeyableWindow(contentRect: CGRect(x: 0, y: 0, width: 560, height: 420),
+                                styleMask: [.borderless], backing: .buffered, defer: false)
+        win.isOpaque = false
+        win.backgroundColor = .clear
+        win.hasShadow = true
+        win.level = .modalPanel
+        win.isReleasedWhenClosed = false
+        win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .moveToActiveSpace]
+        win.contentView = NSHostingView(rootView: view)
 
         if let screen = NSScreen.main {
-            let x = screen.frame.midX - 280
-            let y = screen.frame.midY - 100 // slightly above center
-            panel.setFrameOrigin(CGPoint(x: x, y: y))
+            win.setFrameOrigin(CGPoint(x: screen.frame.midX - 280, y: screen.frame.midY - 100))
         }
         NSApp.activate(ignoringOtherApps: true)
-        panel.makeKeyAndOrderFront(nil)
-        self.panel = panel
+        win.makeKeyAndOrderFront(nil)
+        // Close when it loses key focus (e.g. click outside).
+        observer = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification,
+                                                          object: win, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.close() }
+        }
+        self.window = win
     }
 
     private func close() {
-        panel?.orderOut(nil)
-        panel = nil
+        if let observer { NotificationCenter.default.removeObserver(observer) }
+        observer = nil
+        window?.orderOut(nil)
+        window = nil
     }
 }
 
-/// Borderless panels can't become key by default; this allows typing in the search field.
-private final class KeyablePanel: NSPanel {
+/// Borderless windows can't become key by default; this allows typing in the search field.
+private final class KeyableWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
 }
