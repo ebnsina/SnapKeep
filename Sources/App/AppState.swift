@@ -21,6 +21,7 @@ final class AppState {
     private var editor: EditorWindowController?
     private var settingsWindow: SettingsWindowController?
     private var onboarding: OnboardingWindowController?
+    private var studio: StudioWindowController?
     private var pins: [PinWindowController] = []
 
     /// Remembers the last region so it can be recaptured with one shortcut.
@@ -46,7 +47,7 @@ final class AppState {
         recorder.toggle { [weak self] tempURL in
             guard let self else { return }
             guard let tempURL else { self.flash("Recording failed"); return }
-            self.promptSaveRecording(tempURL: tempURL)
+            self.openStudio(tempURL: tempURL)
         }
     }
 
@@ -70,7 +71,25 @@ final class AppState {
             recorder.startRegion(displayID: sel.displayID, scale: sel.scale, sourceRect: sel.sourceRect) { [weak self] tempURL in
                 guard let self else { return }
                 guard let tempURL else { self.flash("Recording failed"); return }
-                self.promptSaveRecording(tempURL: tempURL)
+                self.openStudio(tempURL: tempURL)
+            }
+        }
+    }
+
+    /// Open the Recording Studio (trim/export) for a finished video. GIFs skip straight to
+    /// the save prompt since the studio is video-only for now.
+    private func openStudio(tempURL: URL) {
+        if tempURL.pathExtension.lowercased() == "gif" { promptSaveRecording(tempURL: tempURL); return }
+        let controller = StudioWindowController()
+        studio = controller
+        controller.onClose = { [weak self] _ in self?.studio = nil }
+        controller.present(videoURL: tempURL) { [weak self] exported in
+            guard let self else { return }
+            try? FileManager.default.removeItem(at: tempURL) // discard the raw recording
+            if let exported {
+                self.promptSaveRecording(tempURL: exported)
+            } else {
+                self.flash("Recording discarded")
             }
         }
     }
