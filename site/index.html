@@ -61,49 +61,127 @@
       <div class="container">
         <div class="section-head">
           <h2>Everything you need to capture</h2>
-          <p>One native app for screenshots, recordings, annotation, and sharing — all on your Mac.</p>
+          <p>One native app — click through what it does, one feature at a time.</p>
         </div>
-        <div class="grid">
-          <article class="card g-blue">
-            <div class="ic"><i data-lucide="square-dashed-mouse-pointer"></i></div>
-            <h3>Capture anything</h3>
-            <p>Region, a single window, or the whole screen — in one keystroke, with a live magnifier.</p>
-          </article>
-          <article class="card g-violet">
-            <div class="ic"><i data-lucide="scroll-text"></i></div>
-            <h3>Scrolling capture</h3>
-            <p>Scroll through a long page and SnapKeep stitches it into one seamless tall image.</p>
-          </article>
-          <article class="card g-pink">
-            <div class="ic"><i data-lucide="pen-tool"></i></div>
-            <h3>Annotation editor</h3>
-            <p>Arrows, text, steps, blur, crop, rotate — select, move, and resize anything, with full undo.</p>
-          </article>
-          <article class="card g-amber">
-            <div class="ic"><i data-lucide="wand-sparkles"></i></div>
-            <h3>Beautify</h3>
-            <p>Drop a shot onto a gradient backdrop with padding, rounded corners, and a soft shadow.</p>
-          </article>
-          <article class="card g-teal">
-            <div class="ic"><i data-lucide="clapperboard"></i></div>
-            <h3>Record + Studio</h3>
-            <p>Capture screen or a region, then trim, add music, auto-caption, cut silences, and drop in a logo — right in the built-in Studio. Export MP4 or GIF.</p>
-          </article>
-          <article class="card g-blue">
-            <div class="ic"><i data-lucide="brain-circuit"></i></div>
-            <h3>On-device intelligence</h3>
-            <p>Copy text (OCR), auto-redact faces &amp; emails, and lift the subject from its background — all local.</p>
-          </article>
-          <article class="card g-violet">
-            <div class="ic"><i data-lucide="pin"></i></div>
-            <h3>Pin to desktop</h3>
-            <p>Keep a capture floating always-on-top while you work — a reference that follows you.</p>
-          </article>
-          <article class="card g-pink">
-            <div class="ic"><i data-lucide="shield-check"></i></div>
-            <h3>Private &amp; free</h3>
-            <p>No accounts, no cloud, no telemetry, no cost. Your captures stay yours.</p>
-          </article>
+
+        <div class="feature-tabs">
+          <div class="tab-list" role="tablist">
+            <button class="tab active" data-panel="p-capture" role="tab">
+              <span class="t-ic"><i data-lucide="square-dashed-mouse-pointer"></i></span>
+              <span class="t-txt"><b>Capture anything</b><span>Region, window, or full screen</span></span>
+            </button>
+            <button class="tab" data-panel="p-scroll" role="tab">
+              <span class="t-ic"><i data-lucide="scroll-text"></i></span>
+              <span class="t-txt"><b>Scrolling capture</b><span>Long pages, stitched</span></span>
+            </button>
+            <button class="tab" data-panel="p-annotate" role="tab">
+              <span class="t-ic"><i data-lucide="pen-tool"></i></span>
+              <span class="t-txt"><b>Annotation editor</b><span>Mark up anything</span></span>
+            </button>
+            <button class="tab" data-panel="p-studio" role="tab">
+              <span class="t-ic"><i data-lucide="clapperboard"></i></span>
+              <span class="t-txt"><b>Record + Studio</b><span>Record, then edit</span></span>
+            </button>
+            <button class="tab" data-panel="p-ai" role="tab">
+              <span class="t-ic"><i data-lucide="brain-circuit"></i></span>
+              <span class="t-txt"><b>On-device intelligence</b><span>OCR, redact, cut-out</span></span>
+            </button>
+            <button class="tab" data-panel="p-beautify" role="tab">
+              <span class="t-ic"><i data-lucide="wand-sparkles"></i></span>
+              <span class="t-txt"><b>Beautify</b><span>Share-ready shots</span></span>
+            </button>
+            <button class="tab" data-panel="p-pin" role="tab">
+              <span class="t-ic"><i data-lucide="pin"></i></span>
+              <span class="t-txt"><b>Pin to desktop</b><span>Always in sight</span></span>
+            </button>
+            <button class="tab" data-panel="p-private" role="tab">
+              <span class="t-ic"><i data-lucide="shield-check"></i></span>
+              <span class="t-txt"><b>Private &amp; free</b><span>No cloud, no cost</span></span>
+            </button>
+          </div>
+
+          <div class="tab-panels">
+            <div class="panel active" id="p-capture">
+              <div class="panel-inner">
+                <div class="panel-visual g-blue"><i data-lucide="square-dashed-mouse-pointer"></i></div>
+                <div class="panel-body">
+                  <h3>One keystroke to the perfect shot</h3>
+                  <p>Grab a pixel-precise region, a single window, or the whole screen. A live magnifier with a hex-color readout means you never miss by a pixel.</p>
+                  <div class="chips"><span class="chip">Region</span><span class="chip">Window</span><span class="chip">Full screen</span><span class="chip">Magnifier + hex</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-scroll">
+              <div class="panel-inner">
+                <div class="panel-visual g-violet"><i data-lucide="scroll-text"></i></div>
+                <div class="panel-body">
+                  <h3>Capture what won't fit on screen</h3>
+                  <p>Scroll through a long page, chat, or document and SnapKeep stitches every frame into one seamless tall image — no extensions, no messy cropping.</p>
+                  <div class="chips"><span class="chip">Auto-stitch</span><span class="chip">Any app</span><span class="chip">One tall PNG</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-annotate">
+              <div class="panel-inner">
+                <div class="panel-visual g-pink"><i data-lucide="pen-tool"></i></div>
+                <div class="panel-body">
+                  <h3>Make your point, fast</h3>
+                  <p>Arrows, text, numbered steps, highlights, blur, crop, and rotate. Select, move, and resize anything you've drawn — with unlimited undo.</p>
+                  <div class="chips"><span class="chip">Arrows &amp; steps</span><span class="chip">Blur &amp; redact</span><span class="chip">Resize</span><span class="chip">Undo</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-studio">
+              <div class="panel-inner">
+                <div class="panel-visual g-teal"><i data-lucide="clapperboard"></i></div>
+                <div class="panel-body">
+                  <h3>From raw clip to polished share</h3>
+                  <p>Record your screen or a region, then open the Studio: trim on a thumbnail timeline, add background music, auto-caption on-device, cut dead silences, and drop in a logo. Export MP4 or GIF.</p>
+                  <div class="chips"><span class="chip">Trim</span><span class="chip">Music</span><span class="chip">Auto-captions</span><span class="chip">Cut silences</span><span class="chip">Logo</span><span class="chip">MP4 / GIF</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-ai">
+              <div class="panel-inner">
+                <div class="panel-visual g-blue"><i data-lucide="brain-circuit"></i></div>
+                <div class="panel-body">
+                  <h3>Smart, and completely private</h3>
+                  <p>Copy text out of any capture with OCR, auto-redact faces and emails before you share, or lift the subject clean off its background — every model runs on your Mac.</p>
+                  <div class="chips"><span class="chip">OCR</span><span class="chip">Auto-redact</span><span class="chip">Background removal</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-beautify">
+              <div class="panel-inner">
+                <div class="panel-visual g-amber"><i data-lucide="wand-sparkles"></i></div>
+                <div class="panel-body">
+                  <h3>Screenshots worth sharing</h3>
+                  <p>Drop any shot onto a gradient backdrop with padding, rounded corners, and a soft shadow — social-ready in a single click.</p>
+                  <div class="chips"><span class="chip">Backdrops</span><span class="chip">Padding</span><span class="chip">Rounded corners</span><span class="chip">Soft shadow</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-pin">
+              <div class="panel-inner">
+                <div class="panel-visual g-violet"><i data-lucide="pin"></i></div>
+                <div class="panel-body">
+                  <h3>Keep it in sight</h3>
+                  <p>Float any capture always-on-top while you work — a reference that follows you across apps and spaces, right where you need it.</p>
+                  <div class="chips"><span class="chip">Always on top</span><span class="chip">Drag anywhere</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" id="p-private">
+              <div class="panel-inner">
+                <div class="panel-visual g-teal"><i data-lucide="shield-check"></i></div>
+                <div class="panel-body">
+                  <h3>No accounts. No cloud. No cost.</h3>
+                  <p>SnapKeep has no telemetry, no sign-in, and no paywall. Your captures never leave your Mac — and it's open source, so you can verify every bit of that.</p>
+                  <div class="chips"><span class="chip">No cloud</span><span class="chip">No tracking</span><span class="chip">MIT licensed</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -193,6 +271,17 @@
   </footer>
 
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script>lucide.createIcons();</script>
+  <script>
+    lucide.createIcons();
+    document.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        var panel = document.getElementById(tab.dataset.panel);
+        if (panel) panel.classList.add('active');
+      });
+    });
+  </script>
 </body>
 </html>
