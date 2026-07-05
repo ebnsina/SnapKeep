@@ -56,6 +56,11 @@ struct MenuContent: View {
             }
             .keyboardShortcut("8", modifiers: [.command, .shift])
 
+            MenuButton(title: "Scrolling Capture", subtitle: "Stitch a long page",
+                       symbol: "arrow.down.doc") {
+                app.scrollingCapture()
+            }
+
             MenuButton(title: "Capture Full Screen", subtitle: "Copy & save · ⌘⇧4",
                        symbol: "rectangle.inset.filled") {
                 app.captureFullScreen()

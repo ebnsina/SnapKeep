@@ -15,6 +15,7 @@ final class AppState {
     private let regionController = RegionCaptureController()
     private let windowController = WindowCaptureController()
     private let regionSelector = RegionSelectorController()
+    private let scrollController = ScrollCaptureController()
     let recorder = RecordingController()
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
@@ -44,6 +45,18 @@ final class AppState {
             guard let self else { return }
             guard let tempURL else { self.flash("Recording failed"); return }
             self.promptSaveRecording(tempURL: tempURL)
+        }
+    }
+
+    /// Scrolling capture: pick a viewport, scroll, and stitch into one tall image.
+    func scrollingCapture() {
+        Task {
+            guard let region = await regionSelector.begin() else { return } // cancelled
+            scrollController.begin(region: region) { [weak self] composed, scale in
+                guard let self else { return }
+                guard let composed else { self.flash("Scrolling capture cancelled"); return }
+                self.openEditor(cgImage: composed, scale: scale)
+            }
         }
     }
 

@@ -121,6 +121,30 @@ actor CaptureEngine {
         }
     }
 
+    /// Capture just a region of a display (points, top-left origin), excluding SnapKeep's own
+    /// windows. Used by scrolling capture, which grabs the same viewport repeatedly.
+    func captureRegionImage(displayID: CGDirectDisplayID, scale: Int, sourceRect: CGRect) async throws -> CGImage {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let display = content.displays.first(where: { $0.displayID == displayID })
+                ?? content.displays.first else {
+            throw CaptureError.noDisplay
+        }
+        let ourApp = content.applications.first { $0.bundleIdentifier == Bundle.main.bundleIdentifier }
+        let filter = ourApp.map { SCContentFilter(display: display, excludingApplications: [$0], exceptingWindows: []) }
+            ?? SCContentFilter(display: display, excludingWindows: [])
+
+        let config = SCStreamConfiguration()
+        config.sourceRect = sourceRect
+        config.width = Int(sourceRect.width) * scale
+        config.height = Int(sourceRect.height) * scale
+        config.showsCursor = false
+        do {
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        } catch {
+            throw CaptureError.captureFailed(error.localizedDescription)
+        }
+    }
+
     /// Crop a captured `CGImage` to a region (points), used by the region-select overlay.
     func crop(_ cgImage: CGImage, to rect: CGRect, scale: CGFloat) -> CGImage? {
         let scaled = CGRect(x: rect.minX * scale, y: rect.minY * scale,
