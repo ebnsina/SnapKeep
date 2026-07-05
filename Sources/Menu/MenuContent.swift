@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// The dropdown shown from the menu-bar icon: a header, a grid of every capture/record tool,
-/// and a list of recent captures. Search is revealed on demand. Fully theme-aware.
+/// The dropdown shown from the menu-bar icon: a header, the capture/record tools (as a tile
+/// grid or a detailed list), and recent captures. Fully theme-aware.
 struct MenuContent: View {
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
     @State private var showSearch = false
-    @State private var recentGrid = false
+    @State private var gridMode = true
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -15,7 +15,7 @@ struct MenuContent: View {
             header
 
             if app.isAuthorized {
-                toolGrid
+                if gridMode { toolGrid } else { toolList }
                 recent
             } else {
                 permissionPrompt
@@ -24,7 +24,7 @@ struct MenuContent: View {
         .padding(Theme.Space.md)
         .frame(width: 340)
         .onAppear { app.library.reload() }
-        .onExitCommand { dismiss() } // Esc closes the menu
+        .onExitCommand { dismiss() }
     }
 
     // MARK: Header
@@ -35,43 +35,50 @@ struct MenuContent: View {
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
             Text(Brand.name).font(.headline)
             Spacer()
-            iconButton(recentGrid ? "list.bullet" : "square.grid.2x2",
-                       label: recentGrid ? "List view" : "Grid view") {
-                withAnimation(Theme.Motion.snappy) { recentGrid.toggle() }
+            iconButton(gridMode ? "list.bullet" : "square.grid.2x2",
+                       label: gridMode ? "List view" : "Grid view") {
+                withAnimation(Theme.Motion.snappy) { gridMode.toggle() }
             }
             iconButton("gearshape", label: "Settings") { dismiss(); app.openSettings() }
             iconButton("power", label: "Quit") { NSApp.terminate(nil) }
         }
     }
 
-    private var searchField: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.secondary)
-            TextField("Search recent captures", text: $search)
-                .textFieldStyle(.plain).font(.system(size: 13)).focused($searchFocused)
-            if !search.isEmpty {
-                Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
-                    .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(.quaternary.opacity(0.6), in: Capsule())
-        .transition(.opacity.combined(with: .move(edge: .top)))
-    }
-
     // MARK: Tools
+
+    private var tools: [ToolSpec] {
+        func key(_ a: HotKeyAction) -> String? { AppSettings.shared.binding(for: a).display }
+        return [
+            ToolSpec(short: "Region", title: "Capture Region", symbol: "rectangle.dashed",
+                     shortcut: key(.region)) { run { app.captureRegion() } },
+            ToolSpec(short: "Window", title: "Capture Window", symbol: "macwindow",
+                     shortcut: key(.window)) { run { app.captureWindow() } },
+            ToolSpec(short: "Full", title: "Capture Full Screen", symbol: "rectangle.inset.filled",
+                     shortcut: key(.fullScreen)) { run { app.captureFullScreen() } },
+            ToolSpec(short: "Scroll", title: "Scrolling Capture", symbol: "arrow.down.doc",
+                     shortcut: nil) { run { app.scrollingCapture() } },
+            ToolSpec(short: app.recorder.isRecording ? "Stop" : "Record",
+                     title: app.recorder.isRecording ? "Stop Recording" : "Record Screen",
+                     symbol: app.recorder.isRecording ? "stop.circle.fill" : "record.circle",
+                     tint: .red, shortcut: key(.record)) { run { app.toggleRecording() } },
+            ToolSpec(short: "Rec. Area", title: "Record Region", symbol: "rectangle.dashed.badge.record",
+                     tint: .red, shortcut: nil) { run { app.recordRegion() } },
+            ToolSpec(short: "Recapture", title: "Recapture Last Region", symbol: "arrow.clockwise",
+                     shortcut: key(.lastRegion)) { run { app.recaptureLastRegion() } }
+        ]
+    }
 
     private var toolGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-            ToolTile(title: "Region", symbol: "rectangle.dashed") { run { app.captureRegion() } }
-            ToolTile(title: "Window", symbol: "macwindow") { run { app.captureWindow() } }
-            ToolTile(title: "Full", symbol: "rectangle.inset.filled") { run { app.captureFullScreen() } }
-            ToolTile(title: "Scroll", symbol: "arrow.down.doc") { run { app.scrollingCapture() } }
-            ToolTile(title: app.recorder.isRecording ? "Stop" : "Record",
-                     symbol: app.recorder.isRecording ? "stop.circle.fill" : "record.circle",
-                     tint: .red) { run { app.toggleRecording() } }
-            ToolTile(title: "Rec. Area", symbol: "rectangle.dashed.badge.record", tint: .red) { run { app.recordRegion() } }
-            ToolTile(title: "Recapture", symbol: "arrow.clockwise") { run { app.recaptureLastRegion() } }
+            ForEach(tools) { t in
+                ToolTile(title: t.short, symbol: t.symbol, tint: t.tint, action: t.action)
+            }
+        }
+    }
+
+    private var toolList: some View {
+        VStack(spacing: 2) {
+            ForEach(tools) { t in ToolRow(spec: t) }
         }
     }
 
@@ -104,15 +111,25 @@ struct MenuContent: View {
                 Spacer()
             }
             .padding(.vertical, Theme.Space.sm)
-        } else if recentGrid {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                ForEach(items.prefix(6)) { RecentCell(item: $0) }
-            }
         } else {
             VStack(spacing: 2) {
                 ForEach(items.prefix(6)) { RecentRow(item: $0) }
             }
         }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.secondary)
+            TextField("Search recent captures", text: $search)
+                .textFieldStyle(.plain).font(.system(size: 13)).focused($searchFocused)
+            if !search.isEmpty {
+                Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                    .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(.quaternary.opacity(0.6), in: Capsule())
     }
 
     // MARK: Permission
@@ -144,18 +161,27 @@ struct MenuContent: View {
                 .foregroundStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
                 .background(.quaternary.opacity(active ? 0.3 : 0.6), in: Circle())
         }
-        .buttonStyle(.plain)
-        .help(label)
-        .accessibilityLabel(label)
+        .buttonStyle(.plain).help(label).accessibilityLabel(label)
     }
 }
 
-// MARK: - Tool tile
+// MARK: - Tool model
+
+private struct ToolSpec: Identifiable {
+    let id = UUID()
+    let short: String
+    let title: String
+    let symbol: String
+    var tint: Color? = nil
+    let shortcut: String?
+    let action: () -> Void
+}
+
+// MARK: - Tool tile (grid)
 
 private struct ToolTile: View {
     let title: String
     let symbol: String
-    var primary: Bool = false
     var tint: Color? = nil
     let action: () -> Void
     @State private var hovering = false
@@ -165,15 +191,49 @@ private struct ToolTile: View {
             VStack(spacing: 5) {
                 ZStack {
                     RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                        .fill(primary ? AnyShapeStyle(Theme.accent)
-                                      : AnyShapeStyle(.quaternary.opacity(hovering ? 1 : 0.55)))
+                        .fill(.quaternary.opacity(hovering ? 1 : 0.55))
                     Image(systemName: symbol)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(primary ? AnyShapeStyle(.white) : AnyShapeStyle(tint ?? .primary))
+                        .foregroundStyle(tint ?? .primary)
                 }
                 .frame(height: 42)
                 Text(title).font(.system(size: 10.5)).foregroundStyle(.secondary).lineLimit(1)
             }
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(Theme.Motion.snappy, value: hovering)
+        .accessibilityLabel(title)
+    }
+}
+
+// MARK: - Tool row (list)
+
+private struct ToolRow: View {
+    let spec: ToolSpec
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: spec.action) {
+            HStack(spacing: Theme.Space.sm) {
+                Image(systemName: spec.symbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 22)
+                    .foregroundStyle(spec.tint ?? (hovering ? Color.primary : .secondary))
+                Text(spec.title).font(.subheadline.weight(.medium))
+                Spacer()
+                if let s = spec.shortcut {
+                    Text(s).font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 6))
+                }
+            }
+            .padding(.vertical, 7).padding(.horizontal, Theme.Space.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(hovering ? Color.primary.opacity(0.06) : .clear,
+                        in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
@@ -207,9 +267,7 @@ private struct RecentRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayName).font(.system(size: 12.5, weight: .medium)).lineLimit(1)
                 HStack(spacing: 6) {
-                    Text(item.ext)
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                    Text(item.ext).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary)
                         .padding(.horizontal, 5).padding(.vertical, 1)
                         .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                     Text(item.date, format: .relative(presentation: .named))
@@ -233,9 +291,7 @@ private struct RecentRow: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .animation(Theme.Motion.snappy, value: hovering)
-        .onTapGesture {
-            dismiss(); item.isVideo ? app.open(item) : app.copyToClipboard(item)
-        }
+        .onTapGesture { dismiss(); item.isVideo ? app.open(item) : app.copyToClipboard(item) }
         .draggable(item.url)
     }
 }
@@ -255,54 +311,5 @@ private struct RowAction: View {
         }
         .buttonStyle(.plain).help(help).accessibilityLabel(help)
         .onHover { hovering = $0 }
-    }
-}
-
-// MARK: - Recent grid cell
-
-private struct RecentCell: View {
-    @Environment(AppState.self) private var app
-    @Environment(\.dismiss) private var dismiss
-    let item: CaptureItem
-    @State private var hovering = false
-
-    var body: some View {
-        let thumb = app.library.thumbnail(for: item)
-        Group {
-            if let thumb {
-                Image(nsImage: thumb).resizable().aspectRatio(contentMode: .fill)
-            } else {
-                Rectangle().fill(.quaternary)
-            }
-        }
-        .frame(height: 62)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-        .overlay {
-            if item.isVideo || item.isAnimated {
-                Image(systemName: item.isVideo ? "play.circle.fill" : "photo.stack.fill")
-                    .font(.system(size: 16)).foregroundStyle(.white).shadow(radius: 3)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if hovering {
-                Button { app.library.remove(item) } label: {
-                    Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.white).frame(width: 15, height: 15)
-                        .background(.black.opacity(0.6), in: Circle())
-                }
-                .buttonStyle(.plain).help("Delete").accessibilityLabel("Delete").padding(3)
-            }
-        }
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
-                .strokeBorder(hovering ? Theme.accent : .white.opacity(0.08), lineWidth: hovering ? 2 : 1)
-        )
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .animation(Theme.Motion.snappy, value: hovering)
-        .onTapGesture { dismiss(); item.isVideo ? app.open(item) : app.copyToClipboard(item) }
-        .help(item.displayName)
-        .draggable(item.url)
     }
 }
