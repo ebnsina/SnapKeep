@@ -9,33 +9,35 @@ final class ScrollStitcher {
     private var prevGray: [UInt8]?
     private var grayW = 0, grayH = 0
 
-    private let matchWidth = 180            // downsample width for matching
-    private let minOverlapFraction = 0.35   // require this much overlap to trust a match
+    private let matchWidth = 200            // downsample width for matching
+    private let minOverlapFraction = 0.22   // require this much overlap to trust a match
 
     var frameCount: Int { frames.count }
 
     /// Feed a freshly captured region frame. Returns the total stitched height so far (px).
+    /// The reference for matching is always the last APPENDED frame, so a skipped (no-scroll
+    /// or non-overlapping) capture never corrupts the deltas.
     @discardableResult
     func add(_ frame: CGImage) -> Int {
         let (gray, gw, gh) = Self.grayscale(frame, targetWidth: matchWidth)
 
-        defer { prevGray = gray; grayW = gw; grayH = gh }
-
         // First frame seeds the stitch.
         guard let prev = prevGray, !frames.isEmpty, gw == grayW, gh == grayH else {
             frames = [frame]; deltas = [0]
+            prevGray = gray; grayW = gw; grayH = gh
             return frame.height
         }
 
         guard let shiftLow = bestShift(prev: prev, new: gray, w: gw, h: gh) else {
-            return totalHeight() // no confident match: skip this frame
+            return totalHeight() // no confident overlap: skip, keep last appended as reference
         }
         // Convert the low-res shift back to full-res rows.
         let fullDelta = Int((Double(shiftLow) * Double(frame.height) / Double(gh)).rounded())
-        guard fullDelta >= 4 else { return totalHeight() } // negligible / no scroll
+        guard fullDelta >= 4 else { return totalHeight() } // negligible / no scroll: skip
 
         frames.append(frame)
         deltas.append(min(fullDelta, frame.height))
+        prevGray = gray; grayW = gw; grayH = gh // advance reference to this appended frame
         return totalHeight()
     }
 
@@ -95,7 +97,7 @@ final class ScrollStitcher {
             s += 1
         }
         // Reject weak matches (very different content = not a clean scroll).
-        return bestScore < 24 ? bestS : nil
+        return bestScore < 30 ? bestS : nil
     }
 
     /// Render a CGImage to a top-origin grayscale byte buffer at `targetWidth`.

@@ -31,7 +31,7 @@ final class EditorWindowController {
         let hosting = NSHostingView(rootView: root)
         let win = NSWindow(
             contentRect: CGRect(origin: .zero, size: contentSize(for: state.displaySize)),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .resizable],
             backing: .buffered, defer: false
         )
         win.title = "\(Brand.name) — Edit"
@@ -49,9 +49,14 @@ final class EditorWindowController {
         state.onGeometryChange = { [weak self] in self?.resizeToFit() }
     }
 
-    /// Window content size for a given canvas size (toolbar chrome + a sensible min width).
+    /// Window content size, capped to the screen so the toolbar is always visible (tall
+    /// captures scroll inside the canvas rather than pushing the toolbar off-screen).
     private func contentSize(for canvas: CGSize) -> CGSize {
-        CGSize(width: max(canvas.width, 560), height: canvas.height + 72)
+        let vis = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1400, height: 900)
+        let toolbar: CGFloat = 72
+        let w = min(max(canvas.width, 560), vis.width - 40)
+        let h = min(canvas.height + toolbar, vis.height - 60)
+        return CGSize(width: w, height: h)
     }
 
     private func resizeToFit() {
@@ -146,7 +151,7 @@ private struct EditorRootView: View {
     var body: some View {
         VStack(spacing: 0) {
             CanvasRepresentable(state: state)
-                .frame(width: state.displaySize.width, height: state.displaySize.height)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
                           onShare: onShare, onCopyText: onCopyText,
                           onBeautify: onBeautify, onPrint: onPrint, onClose: onClose)
@@ -156,14 +161,45 @@ private struct EditorRootView: View {
     }
 }
 
+/// Hosts the annotation canvas in an AppKit scroll view so large/tall captures scroll while
+/// the toolbar stays put. The canvas stays full-resolution; mouse coords convert correctly.
 private struct CanvasRepresentable: NSViewRepresentable {
     let state: EditorState
-    func makeNSView(context: Context) -> AnnotationCanvasView { AnnotationCanvasView(state: state) }
-    func updateNSView(_ nsView: AnnotationCanvasView, context: Context) {
-        // Keep the AppKit view in step with the (possibly cropped/rotated) canvas size.
-        if nsView.frame.size != state.displaySize {
-            nsView.frame = CGRect(origin: .zero, size: state.displaySize)
-        }
-        nsView.needsDisplay = true
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let canvas = AnnotationCanvasView(state: state)
+        canvas.frame = CGRect(origin: .zero, size: state.displaySize)
+        let scroll = NSScrollView()
+        scroll.documentView = canvas
+        scroll.hasVerticalScroller = true
+        scroll.hasHorizontalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.drawsBackground = false
+        scroll.borderType = .noBorder
+        context.coordinator.lastSize = state.displaySize
+        DispatchQueue.main.async { scrollToTop(scroll) }
+        return scroll
     }
+
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        guard let canvas = scroll.documentView as? AnnotationCanvasView else { return }
+        if canvas.frame.size != state.displaySize {
+            canvas.frame = CGRect(origin: .zero, size: state.displaySize)
+            if context.coordinator.lastSize != state.displaySize {
+                context.coordinator.lastSize = state.displaySize
+                DispatchQueue.main.async { scrollToTop(scroll) }
+            }
+        }
+        canvas.needsDisplay = true
+    }
+
+    /// Non-flipped canvas: the top row sits at the max Y, so scroll there.
+    private func scrollToTop(_ scroll: NSScrollView) {
+        guard let doc = scroll.documentView else { return }
+        doc.scrollToVisible(NSRect(x: 0, y: doc.frame.height - 1, width: 1, height: 1))
+    }
+
+    final class Coordinator { var lastSize: CGSize = .zero }
 }

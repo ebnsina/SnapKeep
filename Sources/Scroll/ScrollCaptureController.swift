@@ -21,7 +21,7 @@ final class ScrollCaptureController {
         self.onDone = onDone
         frameCount = 0; capturedHeight = 0
         showControlBar()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.18, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
     }
