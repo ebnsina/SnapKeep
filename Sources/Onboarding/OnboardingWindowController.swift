@@ -17,7 +17,7 @@ final class OnboardingWindowController {
             return
         }
         let root = OnboardingView(app: app, onFinish: { [weak self] in self?.close() })
-        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 600, height: 660),
+        let win = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 460, height: 580),
                            styleMask: [.titled, .closable, .fullSizeContentView],
                            backing: .buffered, defer: false)
         win.titlebarAppearsTransparent = true
@@ -63,7 +63,7 @@ private struct OnboardingView: View {
     var body: some View {
         VStack(spacing: 0) {
             hero
-            VStack(spacing: Theme.Space.lg) {
+            VStack(spacing: Theme.Space.md) {
                 featureGrid
                 Spacer(minLength: 0)
                 permission
@@ -72,37 +72,39 @@ private struct OnboardingView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .padding(.vertical, 13)
+                        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(Theme.Space.xl)
+            .padding(Theme.Space.lg)
         }
-        .frame(width: 600, height: 660)
+        .frame(width: 460, height: 580)
         .background(.background)
     }
 
     private var hero: some View {
-        VStack(spacing: Theme.Space.md) {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+        VStack(spacing: Theme.Space.sm) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Theme.accent)
-                .frame(width: 84, height: 84)
+                .frame(width: 62, height: 62)
                 .overlay(
                     Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 40, weight: .medium))
+                        .font(.system(size: 30, weight: .medium))
                         .foregroundStyle(.white)
                 )
-                .shadow(color: Theme.accent.opacity(0.35), radius: 14, y: 6)
-            VStack(spacing: 4) {
-                Text("Welcome to \(Brand.name)").font(.largeTitle.bold())
+                .shadow(color: Theme.accent.opacity(0.3), radius: 12, y: 5)
+            VStack(spacing: 3) {
+                Text("Welcome to \(Brand.name)").font(.title.bold())
                 Text("A fast, private screenshot and recording tool for macOS.")
                     .font(.callout).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 44)
-        .padding(.bottom, Theme.Space.xl)
+        .padding(.top, 26)
+        .padding(.bottom, Theme.Space.lg)
+        .padding(.horizontal, Theme.Space.lg)
         .background(
             Theme.accent.opacity(0.06)
                 .overlay(alignment: .bottom) { Divider() }
@@ -114,24 +116,24 @@ private struct OnboardingView: View {
                             GridItem(.flexible(), spacing: Theme.Space.md)],
                   spacing: Theme.Space.md) {
             ForEach(features) { f in
-                VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                VStack(alignment: .leading, spacing: 6) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
                             .fill(Theme.accent.opacity(0.14))
-                            .frame(width: 38, height: 38)
+                            .frame(width: 32, height: 32)
                         Image(systemName: f.icon)
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Theme.accent)
                     }
-                    Text(f.title).font(.headline)
-                    Text(f.subtitle).font(.caption).foregroundStyle(.secondary)
+                    Text(f.title).font(.subheadline.weight(.semibold))
+                    Text(f.subtitle).font(.caption2).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(Theme.Space.md)
+                .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
+                .padding(Theme.Space.sm)
                 .background(.quaternary.opacity(0.35),
-                            in: RoundedRectangle(cornerRadius: Theme.Radius.lg, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.lg)
+                            in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Theme.Radius.md)
                     .strokeBorder(.white.opacity(0.06), lineWidth: 1))
             }
         }
