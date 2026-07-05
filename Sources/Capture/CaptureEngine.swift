@@ -45,6 +45,31 @@ actor CaptureEngine {
         }
     }
 
+    /// Capture a specific display (by ID) as a raw `CGImage` (native pixels). Used by the
+    /// freeze-frame region overlay, which needs to crop precise pixels after selection.
+    /// Takes Sendable primitives so callers don't send a non-Sendable `NSScreen` into the actor.
+    func captureScreenImage(displayID: CGDirectDisplayID, scale: Int) async throws -> CGImage {
+        guard ScreenPermissions.isAuthorized else { throw CaptureError.notAuthorized }
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+        guard let target = content.displays.first(where: { $0.displayID == displayID })
+                ?? content.displays.first else {
+            throw CaptureError.noDisplay
+        }
+
+        let filter = SCContentFilter(display: target, excludingWindows: [])
+        let config = SCStreamConfiguration()
+        config.width = target.width * scale
+        config.height = target.height * scale
+        config.showsCursor = false
+        config.capturesAudio = false
+
+        do {
+            return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+        } catch {
+            throw CaptureError.captureFailed(error.localizedDescription)
+        }
+    }
+
     /// Crop a captured `CGImage` to a region (points), used by the region-select overlay.
     func crop(_ cgImage: CGImage, to rect: CGRect, scale: CGFloat) -> CGImage? {
         let scaled = CGRect(x: rect.minX * scale, y: rect.minY * scale,

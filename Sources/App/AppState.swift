@@ -9,6 +9,8 @@ final class AppState {
     var lastSavedURL: URL?
     var statusMessage: String?
 
+    private let regionController = RegionCaptureController()
+
     func refreshAuthorization() {
         isAuthorized = ScreenPermissions.isAuthorized
     }
@@ -25,6 +27,21 @@ final class AppState {
             do {
                 let image = try await CaptureEngine.shared.captureDisplay()
                 CaptureStore.copyToClipboard(image)
+                let url = try CaptureStore.savePNG(image)
+                lastSavedURL = url
+                flash("Saved & copied ✓")
+            } catch {
+                flash(error.localizedDescription)
+            }
+        }
+    }
+
+    /// M1 action: freeze the screen, let the user drag a region, then copy + save it.
+    func captureRegion() {
+        Task {
+            guard let image = await regionController.begin() else { return } // cancelled
+            CaptureStore.copyToClipboard(image)
+            do {
                 let url = try CaptureStore.savePNG(image)
                 lastSavedURL = url
                 flash("Saved & copied ✓")
