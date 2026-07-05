@@ -33,7 +33,7 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 
 ### Option A — Download (recommended)
 Grab the latest notarized `SnapKeep.dmg` from the
-[**Releases**](https://github.com/ebnsina/aperi/releases) page, open it, and
+[**Releases**](https://github.com/ebnsina/SnapKeep/releases) page, open it, and
 drag SnapKeep to Applications.
 
 ### Option B — Build from source
@@ -41,7 +41,7 @@ Requires **Xcode 26+** and [`xcodegen`](https://github.com/yonaskolb/XcodeGen)
 (`brew install xcodegen`).
 
 ```bash
-git clone git@github.com:ebnsina/aperi.git
+git clone git@github.com:ebnsina/SnapKeep.git
 cd SnapKeep
 ./scripts/bootstrap.sh      # generates the project and builds a release .app
 open build/SnapKeep.app
