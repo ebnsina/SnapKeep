@@ -89,11 +89,12 @@ svg.lucide { stroke-width: 2; }
 
 /* ---- Icon badge ---- */
 .ic {
-  width: 46px; height: 46px; border-radius: var(--radius); background: #fff; color: var(--accent);
+  width: 46px; height: 46px; border-radius: var(--radius); background: #fff;
+  color: var(--fc, var(--accent));
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ic svg { width: 23px; height: 23px; }
-.ic.sm { width: 44px; height: 44px; border-radius: var(--radius); background: rgba(0,118,182,.1); }
+.ic.sm { width: 44px; height: 44px; border-radius: var(--radius); background: var(--fcbg, rgba(0,118,182,.1)); }
 
 /* flat pastel backgrounds */
 .g-blue   { background: #edf3ff; }
@@ -173,7 +174,7 @@ svg.lucide { stroke-width: 2; }
 .keys li { display: flex; align-items: center; justify-content: space-between; padding: 16px 4px; border-bottom: 1px solid var(--line); }
 .keys li:last-child { border-bottom: 0; }
 .keys span { display: inline-flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 500; }
-.keys span svg { width: 18px; height: 18px; color: var(--accent); }
+.keys span svg { width: 18px; height: 18px; color: var(--fc, var(--accent)); }
 .keys kbd { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 12px; }
 
 /* ---- Why grid ---- */
@@ -185,7 +186,7 @@ svg.lucide { stroke-width: 2; }
 .support { text-align: center; }
 .support-heart {
   width: 56px; height: 56px; border-radius: var(--radius);
-  background: rgba(0,118,182,.1); color: var(--accent); margin: 0 auto 20px;
+  background: var(--fcbg, rgba(0,118,182,.1)); color: var(--fc, var(--accent)); margin: 0 auto 20px;
 }
 .support-heart svg { width: 28px; height: 28px; }
 .support h2 { font-size: clamp(30px, 4.2vw, 44px); font-weight: 800; letter-spacing: -0.03em; }
@@ -245,7 +246,7 @@ svg.lucide { stroke-width: 2; }
 .keys li { transition: padding .18s ease; }
 .keys li:hover { padding-left: 10px; }
 .keys kbd { transition: background .18s ease, color .18s ease, border-color .18s ease; }
-.keys li:hover kbd { background: var(--accent); color: #fff; border-color: var(--accent); }
+.keys li:hover kbd { background: var(--fc, var(--accent)); color: #fff; border-color: var(--fc, var(--accent)); }
 
 .stats div { transition: transform .18s ease; }
 .stats div:hover { transform: translateY(-3px); }
