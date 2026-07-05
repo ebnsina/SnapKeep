@@ -30,7 +30,7 @@ final class EditorWindowController {
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
-        let hosting = NSHostingView(rootView: root)
+        let hosting = FirstMouseHostingView(rootView: root)
         let win = NSWindow(
             contentRect: CGRect(origin: .zero, size: contentSize(for: state.displaySize)),
             styleMask: [.titled, .closable, .resizable],
@@ -245,6 +245,12 @@ private struct CanvasRepresentable: NSViewRepresentable {
     }
 
     final class Coordinator { var lastSize: CGSize = .zero }
+}
+
+/// Hosting view that accepts the first mouse click even when the window isn't key, so toolbar
+/// actions always register (no swallowed "activate the window" first click).
+private final class FirstMouseHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 /// Keeps the canvas centered in the scroll view when it's smaller than the viewport, so a
