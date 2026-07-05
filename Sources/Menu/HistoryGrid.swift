@@ -42,6 +42,14 @@ private struct HistoryCell: View {
         }
         .frame(width: 84, height: 60)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+        .overlay {
+            if item.isVideo || item.isAnimated {
+                Image(systemName: item.isVideo ? "play.circle.fill" : "photo.stack.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.white)
+                    .shadow(radius: 3)
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
                 .strokeBorder(hovering ? Theme.accent : .white.opacity(0.1),
@@ -50,14 +58,18 @@ private struct HistoryCell: View {
         .scaleEffect(hovering ? 1.04 : 1)
         .onHover { hovering = $0 }
         .animation(Theme.Motion.snappy, value: hovering)
-        .onTapGesture { app.copyToClipboard(item) }
-        .help("Click to copy · drag to any app")
+        .onTapGesture { item.isVideo ? app.open(item) : app.copyToClipboard(item) }
+        .help(item.isVideo ? "Click to open · drag to any app" : "Click to copy · drag to any app")
         .draggable(item.url) {
             if let thumb { Image(nsImage: thumb).resizable().frame(width: 84, height: 60) }
         }
         .contextMenu {
-            Button("Copy") { app.copyToClipboard(item) }
-            Button("Pin to Desktop") { app.pin(item) }
+            if item.isVideo {
+                Button("Open") { app.open(item) }
+            } else {
+                Button("Copy") { app.copyToClipboard(item) }
+                Button("Pin to Desktop") { app.pin(item) }
+            }
             Button("Reveal in Finder") { app.reveal(item) }
             ShareLink("Share", item: item.url)
             Divider()

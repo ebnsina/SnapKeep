@@ -11,6 +11,7 @@ final class HotKeyManager {
         case fullScreen = 2
         case window = 3
         case lastRegion = 4
+        case record = 5
     }
 
     private var refs: [EventHotKeyRef?] = []
@@ -21,18 +22,21 @@ final class HotKeyManager {
     private let signature: OSType = 0x534E504B // 'SNPK'
 
     func register(region: @escaping () -> Void, fullScreen: @escaping () -> Void,
-                  window: @escaping () -> Void, lastRegion: @escaping () -> Void) {
+                  window: @escaping () -> Void, lastRegion: @escaping () -> Void,
+                  record: @escaping () -> Void) {
         handlers[.region] = region
         handlers[.fullScreen] = fullScreen
         handlers[.window] = window
         handlers[.lastRegion] = lastRegion
+        handlers[.record] = record
 
         installDispatcher()
-        // ⌘⇧9 region (Lightshot-style), ⌘⇧4 full screen, ⌘⇧8 window, ⌘⇧7 recapture last.
+        // ⌘⇧9 region, ⌘⇧4 full screen, ⌘⇧8 window, ⌘⇧7 recapture last, ⌘⇧6 record.
         add(.region, keyCode: UInt32(kVK_ANSI_9), modifiers: UInt32(cmdKey | shiftKey))
         add(.fullScreen, keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(cmdKey | shiftKey))
         add(.window, keyCode: UInt32(kVK_ANSI_8), modifiers: UInt32(cmdKey | shiftKey))
         add(.lastRegion, keyCode: UInt32(kVK_ANSI_7), modifiers: UInt32(cmdKey | shiftKey))
+        add(.record, keyCode: UInt32(kVK_ANSI_6), modifiers: UInt32(cmdKey | shiftKey))
     }
 
     private func installDispatcher() {

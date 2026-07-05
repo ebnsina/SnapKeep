@@ -66,6 +66,13 @@ struct MenuContent: View {
                 app.recaptureLastRegion()
             }
             .keyboardShortcut("7", modifiers: [.command, .shift])
+
+            MenuButton(title: app.recorder.isRecording ? "Stop Recording" : "Record Screen",
+                       subtitle: app.recorder.isRecording ? "Recording… · ⌘⇧6" : "MP4 or GIF · ⌘⇧6",
+                       symbol: app.recorder.isRecording ? "stop.circle.fill" : "record.circle") {
+                app.toggleRecording()
+            }
+            .keyboardShortcut("6", modifiers: [.command, .shift])
         }
     }
 

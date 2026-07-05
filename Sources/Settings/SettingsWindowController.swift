@@ -47,6 +47,12 @@ struct SettingsView: View {
                 Toggle("Copy to clipboard automatically", isOn: $settings.autoCopy)
                 Toggle("Play shutter sound", isOn: $settings.playSound)
             }
+            Section("Recording") {
+                Picker("Format", selection: $settings.recordFormat) {
+                    ForEach(AppSettings.RecordFormat.allCases) { Text($0.title).tag($0) }
+                }
+                Stepper("Frame rate: \(settings.recordFPS) fps", value: $settings.recordFPS, in: 10...60, step: 5)
+            }
             Section("Save location") {
                 HStack {
                     Text(settings.saveDirectory.path)

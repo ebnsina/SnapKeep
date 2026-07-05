@@ -13,6 +13,7 @@ final class AppState {
 
     private let regionController = RegionCaptureController()
     private let windowController = WindowCaptureController()
+    let recorder = RecordingController()
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
     private var settingsWindow: SettingsWindowController?
@@ -27,8 +28,23 @@ final class AppState {
             region: { [weak self] in self?.captureRegion() },
             fullScreen: { [weak self] in self?.captureFullScreen() },
             window: { [weak self] in self?.captureWindow() },
-            lastRegion: { [weak self] in self?.recaptureLastRegion() }
+            lastRegion: { [weak self] in self?.recaptureLastRegion() },
+            record: { [weak self] in self?.toggleRecording() }
         )
+    }
+
+    /// Start or stop a screen recording (MP4 or GIF per settings).
+    func toggleRecording() {
+        recorder.toggle { [weak self] url in
+            guard let self else { return }
+            if let url {
+                self.library.register(url)
+                self.lastSavedURL = url
+                self.flash("Recording saved")
+            } else {
+                self.flash("Recording failed")
+            }
+        }
     }
 
     func refreshAuthorization() {
@@ -191,6 +207,11 @@ final class AppState {
 
     func reveal(_ item: CaptureItem) {
         NSWorkspace.shared.activateFileViewerSelecting([item.url])
+    }
+
+    /// Open a capture in its default app (used for recordings, which aren't clipboard images).
+    func open(_ item: CaptureItem) {
+        NSWorkspace.shared.open(item.url)
     }
 
     private func flash(_ message: String) {

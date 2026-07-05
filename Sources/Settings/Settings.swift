@@ -14,6 +14,12 @@ final class AppSettings {
         var title: String { self == .png ? "PNG" : "JPEG" }
     }
 
+    enum RecordFormat: String, CaseIterable, Identifiable {
+        case mp4, gif
+        var id: String { rawValue }
+        var title: String { self == .mp4 ? "MP4 video" : "Animated GIF" }
+    }
+
     private let defaults = UserDefaults.standard
 
     var format: ImageFormat {
@@ -35,6 +41,14 @@ final class AppSettings {
     var playSound: Bool {
         didSet { defaults.set(playSound, forKey: "playSound") }
     }
+    /// Output format for screen recordings.
+    var recordFormat: RecordFormat {
+        didSet { defaults.set(recordFormat.rawValue, forKey: "recordFormat") }
+    }
+    /// Frames per second for screen recordings.
+    var recordFPS: Int {
+        didSet { defaults.set(recordFPS, forKey: "recordFPS") }
+    }
 
     private init() {
         format = ImageFormat(rawValue: defaults.string(forKey: "format") ?? "png") ?? .png
@@ -42,6 +56,8 @@ final class AppSettings {
         autoCopy = defaults.object(forKey: "autoCopy") as? Bool ?? true
         saveDirectoryPath = defaults.string(forKey: "saveDirectoryPath") ?? ""
         playSound = defaults.object(forKey: "playSound") as? Bool ?? true
+        recordFormat = RecordFormat(rawValue: defaults.string(forKey: "recordFormat") ?? "mp4") ?? .mp4
+        recordFPS = defaults.object(forKey: "recordFPS") as? Int ?? 30
     }
 
     var saveDirectory: URL {

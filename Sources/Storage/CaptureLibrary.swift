@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 
 /// One saved capture on disk.
 struct CaptureItem: Identifiable, Hashable {
@@ -6,6 +7,8 @@ struct CaptureItem: Identifiable, Hashable {
     let date: Date
     var url: URL { id }
     var name: String { id.lastPathComponent }
+    var isVideo: Bool { ["mp4", "mov"].contains(url.pathExtension.lowercased()) }
+    var isAnimated: Bool { url.pathExtension.lowercased() == "gif" }
 }
 
 /// Tracks recently saved captures for the menu-bar history grid. Backed entirely by the
@@ -26,7 +29,7 @@ final class CaptureLibrary {
             at: dir, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])) ?? []
 
         items = urls
-            .filter { ["png", "jpg", "jpeg"].contains($0.pathExtension.lowercased()) }
+            .filter { ["png", "jpg", "jpeg", "gif", "mp4", "mov"].contains($0.pathExtension.lowercased()) }
             .map { url -> CaptureItem in
                 let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
                     .contentModificationDate ?? .distantPast
@@ -47,6 +50,7 @@ final class CaptureLibrary {
 
     /// Load a thumbnail-sized image for a capture (nil if the file vanished).
     func thumbnail(for item: CaptureItem, maxPixel: CGFloat = 320) -> NSImage? {
+        if item.isVideo { return videoThumbnail(item.url) }
         guard let src = CGImageSourceCreateWithURL(item.url as CFURL, nil) else { return nil }
         let opts: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -54,6 +58,16 @@ final class CaptureLibrary {
             kCGImageSourceThumbnailMaxPixelSize: maxPixel
         ]
         guard let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, opts as CFDictionary) else { return nil }
+        return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    }
+
+    private func videoThumbnail(_ url: URL) -> NSImage? {
+        let asset = AVURLAsset(url: url)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 320, height: 0)
+        guard let cg = try? generator.copyCGImage(at: CMTime(seconds: 0.1, preferredTimescale: 600),
+                                                  actualTime: nil) else { return nil }
         return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
     }
 

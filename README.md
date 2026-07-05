@@ -21,6 +21,8 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 - **Window capture** — `⌘⇧8`; hover to highlight a window, click to grab it.
 - **Full-screen capture** — `⌘⇧4`, instantly copied to the clipboard and saved.
 - **Recapture last region** — `⌘⇧7` re-shoots the exact previous area.
+- **Screen recording** — `⌘⇧6` records to MP4 or animated GIF with a floating
+  timer/stop control; recordings land in your history.
 - **Annotation editor** — pen, marker, line, arrow, rectangle, ellipse, text,
   numbered step badges, and pixelate/redact, in any color and stroke, with undo/redo.
 - **Beautify** — drop a capture onto a gradient backdrop with padding, rounded
@@ -34,7 +36,7 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 - **System-wide hotkeys**, delayed capture, light and dark mode.
 - **Private by design** — no network calls, no telemetry, no cost.
 
-On the roadmap: scrolling capture and screen recording (GIF/MP4).
+On the roadmap: scrolling capture, recording audio, and move/resize of annotations.
 
 ## Install
 
