@@ -157,7 +157,7 @@ private struct EditorRootView: View {
                           onBeautify: onBeautify, onPrint: onPrint, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
-        .background(.black)
+        .background(Color(red: 0.11, green: 0.11, blue: 0.13)) // neutral editor mat
     }
 }
 
@@ -172,6 +172,7 @@ private struct CanvasRepresentable: NSViewRepresentable {
         let canvas = AnnotationCanvasView(state: state)
         canvas.frame = CGRect(origin: .zero, size: state.displaySize)
         let scroll = NSScrollView()
+        scroll.contentView = CenteringClipView() // center the canvas when smaller than the viewport
         scroll.documentView = canvas
         scroll.hasVerticalScroller = true
         scroll.hasHorizontalScroller = true
@@ -202,4 +203,16 @@ private struct CanvasRepresentable: NSViewRepresentable {
     }
 
     final class Coordinator { var lastSize: CGSize = .zero }
+}
+
+/// Keeps the canvas centered in the scroll view when it's smaller than the viewport, so a
+/// narrow/short capture sits on a neutral mat instead of pinned to a corner.
+private final class CenteringClipView: NSClipView {
+    override func constrainBoundsRect(_ proposedBounds: NSRect) -> NSRect {
+        var rect = super.constrainBoundsRect(proposedBounds)
+        guard let doc = documentView else { return rect }
+        if rect.width > doc.frame.width { rect.origin.x = (doc.frame.width - rect.width) / 2 }
+        if rect.height > doc.frame.height { rect.origin.y = (doc.frame.height - rect.height) / 2 }
+        return rect
+    }
 }
