@@ -3,15 +3,21 @@ import AppKit
 /// Drives the freeze-frame region capture flow:
 /// capture the screen → show a full-screen overlay → let the user drag a selection →
 /// crop the frozen pixels and return the result.
+/// The cropped selection plus the backing scale needed to map its pixels to points.
+struct RegionCapture {
+    let cgImage: CGImage
+    let scale: CGFloat
+}
+
 @MainActor
 final class RegionCaptureController {
     private var window: NSWindow?
-    private var continuation: CheckedContinuation<NSImage?, Never>?
+    private var continuation: CheckedContinuation<RegionCapture?, Never>?
     private var frozenCG: CGImage?
     private var targetScreen: NSScreen?
 
-    /// Returns the cropped selection, or nil if the user cancelled.
-    func begin() async -> NSImage? {
+    /// Returns the cropped selection (with its scale), or nil if the user cancelled.
+    func begin() async -> RegionCapture? {
         guard let screen = screenUnderCursor() else { return nil }
         targetScreen = screen
 
@@ -79,9 +85,7 @@ final class RegionCaptureController {
             continuation = nil
             return
         }
-        let image = NSImage(cgImage: cropped,
-                            size: NSSize(width: cropped.width, height: cropped.height))
-        continuation?.resume(returning: image)
+        continuation?.resume(returning: RegionCapture(cgImage: cropped, scale: scale))
         continuation = nil
     }
 

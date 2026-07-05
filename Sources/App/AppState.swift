@@ -11,6 +11,7 @@ final class AppState {
 
     private let regionController = RegionCaptureController()
     private let hotKeys = HotKeyManager()
+    private var editor: EditorWindowController?
 
     /// Register the system-wide capture hotkeys. Call once at launch.
     func installGlobalHotkeys() {
@@ -45,17 +46,24 @@ final class AppState {
         }
     }
 
-    /// M1 action: freeze the screen, let the user drag a region, then copy + save it.
+    /// M1/M2 action: freeze the screen, let the user drag a region, then open the annotation
+    /// editor where they can mark it up and copy or save.
     func captureRegion() {
         Task {
-            guard let image = await regionController.begin() else { return } // cancelled
-            CaptureStore.copyToClipboard(image)
-            do {
-                let url = try CaptureStore.savePNG(image)
-                lastSavedURL = url
-                flash("Saved & copied ✓")
-            } catch {
-                flash(error.localizedDescription)
+            guard let capture = await regionController.begin() else { return } // cancelled
+            let controller = EditorWindowController()
+            editor = controller
+            controller.present(cgImage: capture.cgImage, scale: capture.scale) { [weak self] result in
+                switch result {
+                case .saved(let url):
+                    self?.lastSavedURL = url
+                    self?.flash("Saved & copied ✓")
+                case .copied:
+                    self?.flash("Copied ✓")
+                case .closed:
+                    break
+                }
+                self?.editor = nil
             }
         }
     }

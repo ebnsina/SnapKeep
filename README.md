@@ -16,13 +16,18 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 
 ## ✨ Features
 
-- 🖥️ **Full-screen capture** — one hotkey, instantly copied to the clipboard and saved.
+- 🖱️ **Region capture** — `⌘⇧5` freezes the screen; drag to select any area with live
+  pixel dimensions, crosshair guides, and an 8× magnifier loupe.
+- ✏️ **Annotation editor** — mark up captures with pen, marker, line, arrow, rectangle,
+  ellipse, and text, in any color and stroke width, with full undo/redo.
+- 🖥️ **Full-screen capture** — `⌘⇧4`, instantly copied to the clipboard and saved.
+- ⌨️ **System-wide hotkeys** — capture without opening the menu.
 - 📋 **Copy & save at once** — PNGs land in `~/Pictures/SnapKeep`.
 - 🎨 **Beautiful menu-bar UI** — translucent, spring-animated, light & dark mode.
 - 🔒 **Private by design** — no network calls, no telemetry.
 
-> 🚧 In active development — region select, annotation toolbar, window capture,
-> scrolling capture, OCR, recording, and beautify framing are on the roadmap.
+> 🚧 On the roadmap — window & scrolling capture, delayed capture, OCR, screen
+> recording, and beautify framing.
 
 ## 📦 Install
 
