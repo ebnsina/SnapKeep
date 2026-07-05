@@ -30,6 +30,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Idempotent: replace any existing release for this tag so re-cuts are clean.
+          gh release delete "${{ github.ref_name }}" --yes 2>/dev/null || true
           gh release create "${{ github.ref_name }}" build/SnapKeep-*.dmg \
             --title "SnapKeep ${{ github.ref_name }}" \
             --generate-notes
