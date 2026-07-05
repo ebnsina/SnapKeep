@@ -42,9 +42,12 @@ On the roadmap: scrolling capture, recording audio, and move/resize of annotatio
 
 ### Option A — Download (recommended)
 
-Grab the latest notarized `SnapKeep.dmg` from the
+Grab the latest `SnapKeep.dmg` from the
 [Releases](https://github.com/ebnsina/SnapKeep/releases) page, open it, and
 drag SnapKeep to Applications.
+
+> The build isn't notarized yet, so on first launch macOS may say it can't
+> verify the developer. **Right-click SnapKeep → Open → Open** once to allow it.
 
 ### Option B — Build from source
 
@@ -63,6 +66,19 @@ Or open it in Xcode:
 ```bash
 xcodegen generate
 open SnapKeep.xcodeproj
+```
+
+### Building a release DMG
+
+```bash
+./scripts/make-dmg.sh        # → build/SnapKeep-<version>.dmg
+```
+
+Pushing a `v*` tag builds the DMG and publishes a GitHub Release automatically
+(see `.github/workflows/release.yml`):
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
 ```
 
 ## Permissions
