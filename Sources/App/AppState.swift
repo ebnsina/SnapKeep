@@ -10,6 +10,15 @@ final class AppState {
     var statusMessage: String?
 
     private let regionController = RegionCaptureController()
+    private let hotKeys = HotKeyManager()
+
+    /// Register the system-wide capture hotkeys. Call once at launch.
+    func installGlobalHotkeys() {
+        hotKeys.register(
+            region: { [weak self] in self?.captureRegion() },
+            fullScreen: { [weak self] in self?.captureFullScreen() }
+        )
+    }
 
     func refreshAuthorization() {
         isAuthorized = ScreenPermissions.isAuthorized

@@ -40,13 +40,13 @@ struct MenuContent: View {
 
     private var actions: some View {
         VStack(spacing: Theme.Space.xs) {
-            MenuButton(title: "Capture Region", subtitle: "Drag to select any area",
+            MenuButton(title: "Capture Region", subtitle: "Drag to select · ⌘⇧5",
                        symbol: "rectangle.dashed.badge.record") {
                 app.captureRegion()
             }
             .keyboardShortcut("5", modifiers: [.command, .shift])
 
-            MenuButton(title: "Capture Full Screen", subtitle: "Copy & save instantly",
+            MenuButton(title: "Capture Full Screen", subtitle: "Copy & save · ⌘⇧4",
                        symbol: "rectangle.inset.filled") {
                 app.captureFullScreen()
             }

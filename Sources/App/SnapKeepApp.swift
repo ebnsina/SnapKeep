@@ -8,7 +8,10 @@ struct SnapKeepApp: App {
         MenuBarExtra {
             MenuContent()
                 .environment(app)
-                .onAppear { app.refreshAuthorization() }
+                .onAppear {
+                    app.refreshAuthorization()
+                    app.installGlobalHotkeys()
+                }
         } label: {
             Image(systemName: "camera.viewfinder")
         }
