@@ -7,6 +7,7 @@ struct EditorToolbar: View {
     let onCopy: () -> Void
     let onSave: () -> Void
     let onShare: () -> Void
+    let onCopyText: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -81,6 +82,8 @@ struct EditorToolbar: View {
         HStack(spacing: Theme.Space.xs) {
             Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
                 .help("Copy to clipboard")
+            Button(action: onCopyText) { Label("Copy Text", systemImage: "text.viewfinder") }
+                .help("Extract text (OCR) and copy it")
             Button(action: onShare) { Label("Share", systemImage: "square.and.arrow.up") }
                 .help("Share via AirDrop, Messages, Mail…")
             Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }

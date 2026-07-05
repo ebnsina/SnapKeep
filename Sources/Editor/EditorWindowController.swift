@@ -21,6 +21,7 @@ final class EditorWindowController {
             onCopy: { [weak self] in self?.copy() },
             onSave: { [weak self] in self?.save() },
             onShare: { [weak self] in self?.share() },
+            onCopyText: { [weak self] in self?.copyText() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -60,6 +61,18 @@ final class EditorWindowController {
         }
     }
 
+    /// OCR the base capture and copy the recognized text to the clipboard.
+    private func copyText() {
+        guard let state else { return }
+        let base = state.baseImage
+        Task {
+            let text = await TextRecognizer.recognize(in: base)
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(text.isEmpty ? "" : text, forType: .string)
+        }
+    }
+
     /// Present the native share sheet for the current (flattened) capture.
     private func share() {
         guard let state, let view = window?.contentView else { return }
@@ -84,6 +97,7 @@ private struct EditorRootView: View {
     let onCopy: () -> Void
     let onSave: () -> Void
     let onShare: () -> Void
+    let onCopyText: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -91,7 +105,7 @@ private struct EditorRootView: View {
             CanvasRepresentable(state: state)
                 .frame(width: state.displaySize.width, height: state.displaySize.height)
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
-                          onShare: onShare, onClose: onClose)
+                          onShare: onShare, onCopyText: onCopyText, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(.black)
