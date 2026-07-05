@@ -39,7 +39,7 @@ final class AppState {
                 CaptureStore.copyToClipboard(image)
                 let url = try CaptureStore.savePNG(image)
                 lastSavedURL = url
-                flash("Saved & copied ✓")
+                flash("Saved and copied")
             } catch {
                 flash(error.localizedDescription)
             }
@@ -57,9 +57,9 @@ final class AppState {
                 switch result {
                 case .saved(let url):
                     self?.lastSavedURL = url
-                    self?.flash("Saved & copied ✓")
+                    self?.flash("Saved and copied")
                 case .copied:
-                    self?.flash("Copied ✓")
+                    self?.flash("Copied")
                 case .closed:
                     break
                 }
