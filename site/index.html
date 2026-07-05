@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#0076b6" />
+  <script>document.documentElement.classList.add("js");</script>
 </head>
 <body>
   <header class="nav" id="top">
@@ -48,7 +49,7 @@
             <i data-lucide="github"></i> View on GitHub
           </a>
         </div>
-        <div class="stats">
+        <div class="stats reveal">
           <div><b>7</b><span>capture &amp; record modes</span></div>
           <div><b>100%</b><span>on-device</span></div>
           <div><b>$0</b><span>forever</span></div>
@@ -59,12 +60,12 @@
     <!-- FEATURES -->
     <section id="features" class="section section-alt">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <h2>Everything you need to capture</h2>
           <p>One native app — click through what it does, one feature at a time.</p>
         </div>
 
-        <div class="feature-tabs">
+        <div class="feature-tabs reveal">
           <div class="tab-list" role="tablist">
             <button class="tab active" data-panel="p-capture" role="tab">
               <span class="t-ic"><i data-lucide="square-dashed-mouse-pointer"></i></span>
@@ -207,22 +208,22 @@
     <!-- WHY -->
     <section id="why" class="section section-alt">
       <div class="container">
-        <div class="section-head">
+        <div class="section-head reveal">
           <h2>Built the right way</h2>
           <p>Native performance, real privacy, and no strings attached.</p>
         </div>
         <div class="why-grid">
-          <div class="why">
+          <div class="why reveal">
             <div class="ic sm"><i data-lucide="zap"></i></div>
             <h3>Native &amp; fast</h3>
             <p>Built with ScreenCaptureKit and SwiftUI. It launches instantly, lives in your menu bar, and stays out of the way.</p>
           </div>
-          <div class="why">
+          <div class="why reveal">
             <div class="ic sm"><i data-lucide="lock"></i></div>
             <h3>Private by design</h3>
             <p>Everything — capture, OCR, editing — runs on your Mac. No accounts, no uploads, no telemetry.</p>
           </div>
-          <div class="why">
+          <div class="why reveal">
             <div class="ic sm"><i data-lucide="gift"></i></div>
             <h3>Free forever</h3>
             <p>Open source and MIT licensed. No subscriptions, no trials, no paywalled features.</p>
@@ -282,6 +283,19 @@
         if (panel) panel.classList.add('active');
       });
     });
+
+    // Reveal-on-scroll
+    var reveals = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      reveals.forEach(function (el) { io.observe(el); });
+    } else {
+      reveals.forEach(function (el) { el.classList.add('in'); });
+    }
   </script>
 </body>
 </html>

@@ -184,6 +184,50 @@ svg.lucide { stroke-width: 2; }
 .footer a { color: #56596c; text-decoration: none; }
 .footer a:hover { color: var(--accent); }
 
+/* ---- Motion: scroll reveal + hover ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal { opacity: 0; transform: translateY(20px); transition: opacity .65s cubic-bezier(.2,.7,.2,1), transform .65s cubic-bezier(.2,.7,.2,1); }
+  .js .reveal.in { opacity: 1; transform: none; }
+  .why-grid .why:nth-child(2) { transition-delay: .09s; }
+  .why-grid .why:nth-child(3) { transition-delay: .18s; }
+
+  .panel.active .panel-visual svg { animation: floaty 4.5s ease-in-out infinite; }
+  @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+  .support-heart { animation: pulse 2.6s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+}
+
+/* Hover micro-interactions */
+.btn { transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,118,182,.30); }
+.btn-ghost:hover  { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(20,21,29,.10); }
+.cta-btn:hover    { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,.18); }
+
+.brand img { transition: transform .2s ease; }
+.brand:hover img { transform: rotate(-5deg) scale(1.06); }
+
+.nav-links a { position: relative; }
+.nav-links a::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 2px;
+  background: var(--accent); border-radius: 2px; transform: scaleX(0); transform-origin: left;
+  transition: transform .22s ease;
+}
+.nav-links a:hover::after { transform: scaleX(1); }
+
+.tab { transition: background .15s ease, box-shadow .18s ease, transform .15s ease; }
+.tab:hover { transform: translateX(3px); }
+
+.chip { transition: background .15s ease, color .15s ease, transform .15s ease; }
+.chip:hover { background: rgba(0,118,182,.12); color: var(--accent); transform: translateY(-1px); }
+
+.keys li { transition: padding .18s ease; }
+.keys li:hover { padding-left: 10px; }
+.keys kbd { transition: background .18s ease, color .18s ease, border-color .18s ease; }
+.keys li:hover kbd { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.stats div { transition: transform .18s ease; }
+.stats div:hover { transform: translateY(-3px); }
+
 /* ---- Responsive ---- */
 @media (max-width: 980px) {
   .feature-tabs { grid-template-columns: 1fr; gap: 18px; }
