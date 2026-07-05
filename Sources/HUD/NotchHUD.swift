@@ -11,8 +11,6 @@ final class NotchHUDModel {
     var subtitle: String?
     var thumbnail: NSImage?
     var tint: Color = Theme.accent
-    /// Bumped on every show so SwiftUI re-runs the insertion transition.
-    var token = 0
 }
 
 /// A Dynamic-Island-style HUD that springs open from the top-center of the screen (under the
@@ -24,6 +22,8 @@ final class NotchHUDController {
     private let model = NotchHUDModel()
     private var panel: NSPanel?
     private var hideTask: Task<Void, Never>?
+    /// Bumped on every show; a scheduled orderOut only runs if it still matches.
+    private var generation = 0
 
     private func ensurePanel() {
         guard panel == nil else { return }
@@ -54,12 +54,13 @@ final class NotchHUDController {
         ensurePanel()
         panel?.orderFrontRegardless()
 
+        generation += 1
         model.icon = icon
         model.title = title
         model.subtitle = subtitle
         model.thumbnail = thumbnail
         model.tint = tint
-        model.token += 1
+        // Update content in place (no view identity change → never two pills at once).
         withAnimation(Theme.Motion.island) { model.visible = true }
 
         hideTask?.cancel()
@@ -71,10 +72,13 @@ final class NotchHUDController {
     }
 
     func dismiss() {
+        let gen = generation
         withAnimation(Theme.Motion.smooth) { model.visible = false }
         Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(450))
-            self?.panel?.orderOut(nil)
+            // Only hide if nothing new was shown in the meantime.
+            guard let self, self.generation == gen else { return }
+            self.panel?.orderOut(nil)
         }
     }
 }
@@ -87,7 +91,6 @@ private struct NotchHUDView: View {
         VStack {
             if model.visible {
                 pill
-                    .id(model.token)
                     .transition(.asymmetric(
                         insertion: .scale(scale: 0.15, anchor: .top).combined(with: .opacity),
                         removal: .scale(scale: 0.6, anchor: .top).combined(with: .opacity)
