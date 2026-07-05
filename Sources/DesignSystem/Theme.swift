@@ -14,11 +14,12 @@ enum Theme {
         static let xxl: CGFloat = 32
     }
 
-    // MARK: Corner radius
+    // MARK: Corner radius — Tailwind-style scale, centered on rounded-xl (12).
     enum Radius {
-        static let sm: CGFloat = 6
-        static let md: CGFloat = 10
-        static let lg: CGFloat = 16
+        static let sm: CGFloat = 8    // rounded-lg
+        static let md: CGFloat = 12   // rounded-xl (default surface radius)
+        static let lg: CGFloat = 16   // rounded-2xl
+        static let xl: CGFloat = 20   // rounded-3xl-ish
         static let pill: CGFloat = 999
     }
 
@@ -29,23 +30,23 @@ enum Theme {
         static let bouncy: Animation = .bouncy(duration: 0.5, extraBounce: 0.15)
     }
 
-    // MARK: Brand color — azure blue the whole app leans on.
-    static let accent = Color(red: 0.18, green: 0.49, blue: 0.97)      // #2E7DF7
-    static let accentSoft = Color(red: 0.35, green: 0.61, blue: 1.0)   // #5A9BFF
+    // MARK: Brand color — Honolulu Blue the whole app leans on.
+    static let accent = Color(red: 0.0, green: 0.463, blue: 0.714)      // #0076B6
+    static let accentSoft = Color(red: 0.13, green: 0.60, blue: 0.85)   // #2199D9
 
     static let brandGradient = LinearGradient(
-        colors: [Color(red: 0.18, green: 0.49, blue: 0.97),  // #2E7DF7
-                 Color(red: 0.12, green: 0.37, blue: 0.88)], // #1F5FE0
+        colors: [Color(red: 0.0, green: 0.463, blue: 0.714),  // #0076B6
+                 Color(red: 0.0, green: 0.353, blue: 0.549)], // #005A8C
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
 
     /// NSColor mirror of `accent`, for AppKit surfaces (overlay border, loupe ring).
-    static let accentNS = NSColor(red: 0.18, green: 0.49, blue: 0.97, alpha: 1)
+    static let accentNS = NSColor(red: 0.0, green: 0.463, blue: 0.714, alpha: 1)
 }
 
 extension View {
-    /// Standard translucent card used across menus and panels.
-    func snapCard(radius: CGFloat = Theme.Radius.lg) -> some View {
+    /// Standard translucent card used across menus and panels (rounded-xl by default).
+    func snapCard(radius: CGFloat = Theme.Radius.md) -> some View {
         self
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
