@@ -91,7 +91,7 @@ svg.lucide { stroke-width: 2; }
 .grid { display: grid; gap: 18px; grid-template-columns: repeat(4, 1fr); }
 .card {
   border-radius: var(--radius); padding: 26px;
-  border: 1px solid rgba(20,21,29,.06);
+  border: none;
 }
 .card h3 { font-size: 18.5px; font-weight: 700; letter-spacing: -0.01em; margin: 16px 0 6px; }
 .card p { font-size: 14.5px; color: var(--soft); }
@@ -102,12 +102,12 @@ svg.lucide { stroke-width: 2; }
 .ic svg { width: 23px; height: 23px; }
 .ic.sm { width: 44px; height: 44px; border-radius: var(--radius); background: rgba(0,118,182,.1); }
 
-/* pastel card backgrounds */
-.g-blue   { background: linear-gradient(150deg, #eaf1ff, #f2ecff); }
-.g-violet { background: linear-gradient(150deg, #f0ecff, #fceaf6); }
-.g-pink   { background: linear-gradient(150deg, #fdebf3, #fff0e6); }
-.g-amber  { background: linear-gradient(150deg, #fff3e2, #fde9f1); }
-.g-teal   { background: linear-gradient(150deg, #e6f7f1, #e9f1ff); }
+/* flat pastel card backgrounds */
+.g-blue   { background: #edf3ff; }
+.g-violet { background: #f2edfc; }
+.g-pink   { background: #fdeef4; }
+.g-amber  { background: #fff4e8; }
+.g-teal   { background: #e9f7f1; }
 
 /* ---- Shortcuts (two column) ---- */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
