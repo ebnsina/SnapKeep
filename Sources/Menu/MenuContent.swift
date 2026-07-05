@@ -3,6 +3,7 @@ import SwiftUI
 /// The dropdown shown from the menu-bar icon. Modern, translucent, spring-animated.
 struct MenuContent: View {
     @Environment(AppState.self) private var app
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.sm) {
@@ -106,6 +107,7 @@ struct MenuContent: View {
             }
             Spacer()
             Button {
+                dismiss()
                 app.openSettings()
             } label: {
                 Image(systemName: "gearshape")
@@ -123,21 +125,25 @@ struct MenuContent: View {
     }
 }
 
-/// A rich, hover-highlighting menu row.
+/// A rich, hover-highlighting menu row. Closes the menu after acting.
 private struct MenuButton: View {
     let title: String
     let subtitle: String?
     let symbol: String
     let action: () -> Void
+    @Environment(\.dismiss) private var dismiss
     @State private var hovering = false
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            dismiss()
+            action()
+        } label: {
             HStack(spacing: Theme.Space.sm) {
                 Image(systemName: symbol)
                     .font(.system(size: 15, weight: .medium))
                     .frame(width: 22)
-                    .foregroundStyle(hovering ? AnyShapeStyle(Theme.brandGradient) : AnyShapeStyle(.secondary))
+                    .foregroundStyle(hovering ? Color.primary : Color.secondary)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(title).font(.subheadline.weight(.medium))
                     if let subtitle {
@@ -146,13 +152,12 @@ private struct MenuButton: View {
                 }
                 Spacer()
             }
-            .padding(.vertical, Theme.Space.xs)
+            .padding(.vertical, Theme.Space.sm)
             .padding(.horizontal, Theme.Space.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(hovering ? Theme.accent.opacity(0.14) : .clear,
+            .background(hovering ? Color.primary.opacity(0.08) : .clear,
                         in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
             .contentShape(Rectangle())
-            .scaleEffect(hovering ? 1.015 : 1, anchor: .leading)
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }

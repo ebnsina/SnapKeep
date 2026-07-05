@@ -28,6 +28,7 @@ struct HistoryGrid: View {
 
 private struct HistoryCell: View {
     @Environment(AppState.self) private var app
+    @Environment(\.dismiss) private var dismiss
     let item: CaptureItem
     @State private var hovering = false
 
@@ -75,7 +76,10 @@ private struct HistoryCell: View {
         .scaleEffect(hovering ? 1.04 : 1)
         .onHover { hovering = $0 }
         .animation(Theme.Motion.snappy, value: hovering)
-        .onTapGesture { item.isVideo ? app.open(item) : app.copyToClipboard(item) }
+        .onTapGesture {
+            dismiss()
+            item.isVideo ? app.open(item) : app.copyToClipboard(item)
+        }
         .help(item.isVideo ? "Click to open · drag to any app" : "Click to copy · drag to any app")
         .draggable(item.url) {
             if let thumb { Image(nsImage: thumb).resizable().frame(width: 84, height: 60) }
