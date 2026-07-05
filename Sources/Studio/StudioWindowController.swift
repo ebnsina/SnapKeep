@@ -66,6 +66,9 @@ final class StudioModel {
     var thumbnails: [NSImage] = []
     var isPlaying = false
 
+    var exportFormat: ExportFormat = .mp4
+    var exportError = false
+
     /// The caption line active at the current playhead (for live preview).
     var currentCaption: String? {
         guard captionsEnabled else { return nil }
@@ -327,8 +330,21 @@ final class StudioModel {
 
     // MARK: Export
 
-    /// Export the trimmed range (with music + captions if set) to a new MP4. Nil on failure.
+    /// Export in the chosen format (MP4 or GIF). Returns nil on any failure — never throws.
     func export() async -> URL? {
+        guard let mp4 = await exportComposedMP4() else { return nil }
+        if exportFormat == .mp4 { return mp4 }
+
+        // GIF: convert the composed video, then drop the intermediate MP4.
+        let gif = FileManager.default.temporaryDirectory
+            .appendingPathComponent("studio-\(UUID().uuidString).gif")
+        let ok = await GIFExporter.convert(videoURL: mp4, to: gif)
+        try? FileManager.default.removeItem(at: mp4)
+        return ok ? gif : nil
+    }
+
+    /// Render the trimmed range with music/captions/logo baked in. Nil on failure.
+    private func exportComposedMP4() async -> URL? {
         let asset: AVAsset
         let mix: AVAudioMix?
         if musicURL != nil, let built = await buildComposition() {
@@ -354,6 +370,11 @@ final class StudioModel {
             }
         }
     }
+}
+
+enum ExportFormat: String, CaseIterable, Identifiable {
+    case mp4 = "MP4", gif = "GIF"
+    var id: String { rawValue }
 }
 
 // MARK: - View
@@ -405,17 +426,20 @@ private struct StudioView: View {
             silenceRow
             logoRow
 
-            HStack {
+            HStack(spacing: Theme.Space.sm) {
                 Text("\(timeString(model.trimStart)) – \(timeString(model.trimEnd))")
                     .font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
                 Spacer()
+                Picker("", selection: $model.exportFormat) {
+                    ForEach(ExportFormat.allCases) { Text($0.rawValue).tag($0) }
+                }.pickerStyle(.segmented).labelsHidden().frame(width: 120).disabled(model.exporting)
                 Button("Cancel") { onCancel() }
                 Button {
                     Task {
                         model.exporting = true
                         let url = await model.export()
                         model.exporting = false
-                        onExport(url)
+                        if let url { onExport(url) } else { model.exportError = true }
                     }
                 } label: {
                     if model.exporting { ProgressView().controlSize(.small) }
@@ -428,6 +452,11 @@ private struct StudioView: View {
         .frame(minWidth: 560, minHeight: 480)
         .task { await model.load() }
         .onExitCommand { onCancel() }
+        .alert("Export failed", isPresented: $model.exportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Something went wrong while exporting. Your recording is unchanged — please try again.")
+        }
     }
 
     @ViewBuilder private var musicRow: some View {

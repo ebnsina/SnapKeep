@@ -24,6 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let app = AppState()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSSetUncaughtExceptionHandler { exception in
+            NSLog("[SnapKeep] Uncaught exception: \(exception.name.rawValue) — \(exception.reason ?? "")")
+        }
         terminateOtherInstances()
         app.installGlobalHotkeys()
         app.primePermissionOnLaunch()
