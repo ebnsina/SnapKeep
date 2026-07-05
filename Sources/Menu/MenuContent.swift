@@ -58,7 +58,7 @@ struct MenuContent: View {
 
     private var toolGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
-            ToolTile(title: "Region", symbol: "rectangle.dashed", primary: true) { run { app.captureRegion() } }
+            ToolTile(title: "Region", symbol: "rectangle.dashed") { run { app.captureRegion() } }
             ToolTile(title: "Window", symbol: "macwindow") { run { app.captureWindow() } }
             ToolTile(title: "Full", symbol: "rectangle.inset.filled") { run { app.captureFullScreen() } }
             ToolTile(title: "Scroll", symbol: "arrow.down.doc") { run { app.scrollingCapture() } }
