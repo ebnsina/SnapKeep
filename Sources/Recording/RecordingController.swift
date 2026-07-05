@@ -98,8 +98,9 @@ final class RecordingController {
         win.contentView = NSHostingView(rootView: RecordingBar(controller: self) { [weak self] in self?.stop() })
 
         if let screen = NSScreen.main {
+            // Sit just below the menu bar (visibleFrame excludes it), clear of the notch.
             let x = screen.frame.midX - 95
-            let y = screen.frame.maxY - 64
+            let y = screen.visibleFrame.maxY - 44 - 10
             win.setFrameOrigin(CGPoint(x: x, y: y))
         }
         win.orderFrontRegardless()

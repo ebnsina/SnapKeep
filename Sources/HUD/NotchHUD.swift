@@ -40,8 +40,10 @@ final class NotchHUDController {
         p.contentView = NSHostingView(rootView: NotchHUDView(model: model))
 
         if let screen = NSScreen.main {
+            // Anchor the panel's top to the bottom of the menu bar (visibleFrame excludes it),
+            // so the pill sits BELOW the notch and is never split or clipped by it.
             let x = screen.frame.midX - width / 2
-            let y = screen.frame.maxY - height
+            let y = screen.visibleFrame.maxY - height
             p.setFrameOrigin(CGPoint(x: x, y: y))
         }
         panel = p
@@ -88,13 +90,13 @@ private struct NotchHUDView: View {
     var body: some View {
         VStack {
             pill
-                .scaleEffect(model.visible ? 1 : 0.82, anchor: .top)
-                .offset(y: model.visible ? 0 : -64)
+                .scaleEffect(model.visible ? 1 : 0.86, anchor: .top)
+                .offset(y: model.visible ? 0 : -44)
                 .opacity(model.visible ? 1 : 0)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, 6)
+        .padding(.top, 10)
         .allowsHitTesting(false)
     }
 

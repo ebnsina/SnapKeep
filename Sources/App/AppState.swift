@@ -37,15 +37,12 @@ final class AppState {
     /// Start or stop a screen recording (MP4 or GIF per settings). On stop, prompt the user
     /// to save (with a rename) rather than auto-saving.
     func toggleRecording() {
-        let starting = !recorder.isRecording
+        // The floating control bar is the recording indicator, so no start HUD (it would
+        // overlap the bar). The HUD is used only for the saved/failed result.
         recorder.toggle { [weak self] tempURL in
             guard let self else { return }
             guard let tempURL else { self.flash("Recording failed"); return }
             self.promptSaveRecording(tempURL: tempURL)
-        }
-        if starting {
-            NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording…",
-                                           subtitle: "⌘⇧6 to stop", tint: .red)
         }
     }
 

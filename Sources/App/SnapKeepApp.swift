@@ -24,7 +24,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let app = AppState()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        terminateOtherInstances()
         app.installGlobalHotkeys()
         app.primePermissionOnLaunch()
+    }
+
+    /// Keep exactly one SnapKeep alive: the newest launch wins and quits any older instances
+    /// (also makes the relaunch-for-permission flow clean).
+    private func terminateOtherInstances() {
+        guard let id = Bundle.main.bundleIdentifier else { return }
+        NSRunningApplication.runningApplications(withBundleIdentifier: id)
+            .filter { $0 != .current }
+            .forEach { $0.terminate() }
     }
 }
