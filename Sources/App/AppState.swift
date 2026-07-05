@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 /// Central app orchestrator. Owns permission state and drives capture actions from the menu.
 @MainActor
@@ -33,26 +34,50 @@ final class AppState {
         )
     }
 
-    /// Start or stop a screen recording (MP4 or GIF per settings).
+    /// Start or stop a screen recording (MP4 or GIF per settings). On stop, prompt the user
+    /// to save (with a rename) rather than auto-saving.
     func toggleRecording() {
         let starting = !recorder.isRecording
-        recorder.toggle { [weak self] url in
+        recorder.toggle { [weak self] tempURL in
             guard let self else { return }
-            if let url {
-                self.library.register(url)
-                self.lastSavedURL = url
-                self.flash("Recording saved")
-                NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording saved",
-                                               subtitle: url.lastPathComponent,
-                                               thumbnail: self.library.thumbnail(for: CaptureItem(id: url, date: Date())),
-                                               tint: .red)
-            } else {
-                self.flash("Recording failed")
-            }
+            guard let tempURL else { self.flash("Recording failed"); return }
+            self.promptSaveRecording(tempURL: tempURL)
         }
         if starting {
             NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording…",
                                            subtitle: "⌘⇧6 to stop", tint: .red)
+        }
+    }
+
+    /// Ask where/what to save the finished recording; discard the temp file if cancelled.
+    private func promptSaveRecording(tempURL: URL) {
+        let ext = tempURL.pathExtension
+        let panel = NSSavePanel()
+        panel.title = "Save Recording"
+        panel.nameFieldStringValue = CaptureStore.suggestedName(ext: ext)
+        panel.directoryURL = AppSettings.shared.saveDirectory
+        panel.canCreateDirectories = true
+        if let type = UTType(filenameExtension: ext) { panel.allowedContentTypes = [type] }
+
+        NSApp.activate(ignoringOtherApps: true) // agent app: bring the panel to front
+        let response = panel.runModal()
+        guard response == .OK, let dest = panel.url else {
+            try? FileManager.default.removeItem(at: tempURL)
+            flash("Recording discarded")
+            return
+        }
+        do {
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: tempURL, to: dest)
+            library.register(dest)
+            lastSavedURL = dest
+            flash("Recording saved")
+            NotchHUDController.shared.show(icon: "record.circle.fill", title: "Recording saved",
+                                           subtitle: dest.lastPathComponent,
+                                           thumbnail: library.thumbnail(for: CaptureItem(id: dest, date: Date())),
+                                           tint: .red)
+        } catch {
+            flash(error.localizedDescription)
         }
     }
 

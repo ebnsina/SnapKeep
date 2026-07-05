@@ -94,13 +94,19 @@ struct SettingsView: View {
     }
 
     private var about: some View {
-        VStack(spacing: Theme.Space.md) {
+        VStack(spacing: Theme.Space.sm) {
             Image(systemName: "camera.viewfinder")
-                .font(.system(size: 44)).foregroundStyle(Theme.brandGradient)
+                .font(.system(size: 46)).foregroundStyle(Theme.brandGradient)
+                .padding(.bottom, Theme.Space.xs)
             Text(Brand.name).font(.title.bold())
-            Text(Brand.tagline).foregroundStyle(.secondary)
+            Text("Version \(Brand.version) (\(Brand.build))")
+                .font(.callout).foregroundStyle(.secondary)
             Text("A native, private screenshot tool for Apple Silicon.")
                 .font(.caption).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Text(Brand.copyright)
+                .font(.caption2).foregroundStyle(.tertiary)
+                .padding(.top, Theme.Space.xs)
             Spacer()
         }
         .padding(Theme.Space.xl)

@@ -56,22 +56,19 @@ final class RecordingController {
         }
     }
 
+    /// Produce the final-format file in a temp location and hand it back. The caller decides
+    /// whether/where to save it (no auto-save).
     private func finalize(tempURL: URL) async {
-        let settings = AppSettings.shared
-        let dir = settings.saveDirectory
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-
         var finalURL: URL?
-        if settings.recordFormat == .gif {
-            let gifURL = dir.appendingPathComponent(CaptureStore.suggestedName(ext: "gif"))
+        if AppSettings.shared.recordFormat == .gif {
+            let gifURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(CaptureStore.suggestedName(ext: "gif"))
             if await GIFExporter.convert(videoURL: tempURL, to: gifURL) {
                 finalURL = gifURL
             }
             try? FileManager.default.removeItem(at: tempURL)
         } else {
-            let mp4URL = dir.appendingPathComponent(CaptureStore.suggestedName(ext: "mp4"))
-            try? FileManager.default.moveItem(at: tempURL, to: mp4URL)
-            finalURL = mp4URL
+            finalURL = tempURL // already an mp4 in the temp dir
         }
 
         isBusy = false

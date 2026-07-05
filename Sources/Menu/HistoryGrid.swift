@@ -50,6 +50,23 @@ private struct HistoryCell: View {
                     .shadow(radius: 3)
             }
         }
+        .overlay(alignment: .topTrailing) {
+            if hovering {
+                Button {
+                    app.library.remove(item)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 16, height: 16)
+                        .background(.black.opacity(0.65), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Delete")
+                .padding(3)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
         .overlay(
             RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
                 .strokeBorder(hovering ? Theme.accent : .white.opacity(0.1),
