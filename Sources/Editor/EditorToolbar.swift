@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The floating pill toolbar shown over the editor: tool picker, color, stroke, undo/redo,
-/// and the copy/save/close actions.
+/// The floating toolbar over the editor: tools, color, stroke, undo/redo, and actions.
+/// Every control shares one icon-button style for a consistent, polished look.
 struct EditorToolbar: View {
     @Bindable var state: EditorState
     let onCopy: () -> Void
@@ -17,24 +17,25 @@ struct EditorToolbar: View {
             divider
             colors
             divider
-            strokeControl
+            stroke
             divider
-            historyControls
+            history
             divider
             actions
         }
         .padding(.horizontal, Theme.Space.md)
         .padding(.vertical, Theme.Space.sm)
         .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
-        .shadow(color: .black.opacity(0.28), radius: 18, y: 8)
+        .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 1))
+        .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
     }
 
+    // MARK: Groups
+
     private var tools: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             ForEach(Annotation.Kind.allCases) { kind in
-                ToolButton(symbol: kind.symbol, help: kind.title,
-                           isActive: state.tool == kind) {
+                ToolbarIcon(symbol: kind.symbol, help: kind.title, isActive: state.tool == kind) {
                     state.tool = kind
                 }
             }
@@ -42,92 +43,135 @@ struct EditorToolbar: View {
     }
 
     private var colors: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 6) {
             ForEach(Array(EditorState.palette.enumerated()), id: \.offset) { _, ns in
-                let c = Color(nsColor: ns)
-                Circle()
-                    .fill(c)
-                    .frame(width: 16, height: 16)
-                    .overlay(Circle().strokeBorder(.white.opacity(0.6),
-                                                   lineWidth: state.color == ns ? 2 : 0.5))
-                    .scaleEffect(state.color == ns ? 1.18 : 1)
-                    .onTapGesture { state.color = ns }
-                    .animation(Theme.Motion.snappy, value: state.color == ns)
+                Swatch(color: Color(nsColor: ns), selected: state.color == ns) {
+                    state.color = ns
+                }
             }
-            ColorPicker("", selection: Binding(
+            CustomColorWell(color: Binding(
                 get: { Color(nsColor: state.color) },
                 set: { state.color = NSColor($0) }
             ))
-            .labelsHidden()
-            .frame(width: 18)
         }
     }
 
-    private var strokeControl: some View {
-        HStack(spacing: Theme.Space.xs) {
-            Image(systemName: "lineweight").font(.system(size: 11)).foregroundStyle(.secondary)
-            Slider(value: $state.lineWidth, in: 1...12).frame(width: 70)
+    private var stroke: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "lineweight")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+            Slider(value: $state.lineWidth, in: 1...12)
+                .controlSize(.small)
+                .frame(width: 78)
+                .tint(Theme.accent)
         }
     }
 
-    private var historyControls: some View {
-        HStack(spacing: 2) {
-            ToolButton(symbol: "arrow.uturn.backward", help: "Undo", isActive: false,
-                       disabled: !state.canUndo) { state.undo() }
-            ToolButton(symbol: "arrow.uturn.forward", help: "Redo", isActive: false,
-                       disabled: !state.canRedo) { state.redo() }
+    private var history: some View {
+        HStack(spacing: 3) {
+            ToolbarIcon(symbol: "arrow.uturn.backward", help: "Undo", disabled: !state.canUndo) { state.undo() }
+            ToolbarIcon(symbol: "arrow.uturn.forward", help: "Redo", disabled: !state.canRedo) { state.redo() }
         }
     }
 
     private var actions: some View {
-        HStack(spacing: Theme.Space.xs) {
-            Button(action: onCopy) { Label("Copy", systemImage: "doc.on.doc") }
-                .help("Copy to clipboard")
-            Button(action: onCopyText) { Label("Copy Text", systemImage: "text.viewfinder") }
-                .help("Extract text (OCR) and copy it")
-            Button(action: onBeautify) { Label("Beautify", systemImage: "wand.and.stars") }
-                .help("Add a gradient background, padding, and shadow")
-            Button(action: onShare) { Label("Share", systemImage: "square.and.arrow.up") }
-                .help("Share via AirDrop, Messages, Mail…")
-            Button(action: onSave) { Label("Save", systemImage: "square.and.arrow.down") }
-                .buttonStyle(.borderedProminent).tint(Theme.accent)
-                .help("Save PNG")
-            Button(action: onClose) { Image(systemName: "xmark") }
-                .help("Close")
+        HStack(spacing: 3) {
+            ToolbarIcon(symbol: "doc.on.doc", help: "Copy to clipboard", action: onCopy)
+            ToolbarIcon(symbol: "text.viewfinder", help: "Copy text (OCR)", action: onCopyText)
+            ToolbarIcon(symbol: "wand.and.stars", help: "Beautify", action: onBeautify)
+            ToolbarIcon(symbol: "square.and.arrow.up", help: "Share", action: onShare)
+            ToolbarIcon(symbol: "square.and.arrow.down", help: "Save", role: .primary, action: onSave)
+            ToolbarIcon(symbol: "xmark", help: "Close", action: onClose)
         }
-        .labelStyle(.iconOnly)
-        .controlSize(.large)
     }
 
     private var divider: some View {
-        Rectangle().fill(.white.opacity(0.12)).frame(width: 1, height: 20)
+        Rectangle().fill(.primary.opacity(0.12)).frame(width: 1, height: 22)
     }
 }
 
-private struct ToolButton: View {
+// MARK: - Reusable pieces
+
+/// One uniform icon button. `.primary` fills with the brand color; active tools too.
+private struct ToolbarIcon: View {
+    enum Role { case normal, primary }
+
     let symbol: String
-    let help: String
-    let isActive: Bool
+    var help: String = ""
+    var isActive: Bool = false
     var disabled: Bool = false
+    var role: Role = .normal
     let action: () -> Void
+
     @State private var hovering = false
+
+    private var filled: Bool { isActive || role == .primary }
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13.5, weight: .medium))
                 .frame(width: 30, height: 28)
-                .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-                .background(isActive ? AnyShapeStyle(Theme.brandGradient)
-                                     : AnyShapeStyle(hovering ? Color.primary.opacity(0.1) : .clear),
-                            in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                .foregroundStyle(filled ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                .background {
+                    let shape = RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
+                    if filled {
+                        shape.fill(Theme.brandGradient)
+                    } else if hovering {
+                        shape.fill(.primary.opacity(0.1))
+                    }
+                }
         }
         .buttonStyle(.plain)
         .disabled(disabled)
-        .opacity(disabled ? 0.35 : 1)
+        .opacity(disabled ? 0.3 : 1)
         .help(help)
         .onHover { hovering = $0 }
         .animation(Theme.Motion.snappy, value: hovering)
         .animation(Theme.Motion.snappy, value: isActive)
+    }
+}
+
+/// A color dot in the palette.
+private struct Swatch: View {
+    let color: Color
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(color)
+                .frame(width: 16, height: 16)
+                .overlay(Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1))
+                .overlay(Circle().strokeBorder(Theme.accent, lineWidth: selected ? 2.5 : 0)
+                    .padding(-2.5))
+                .scaleEffect(selected ? 1.12 : 1)
+        }
+        .buttonStyle(.plain)
+        .animation(Theme.Motion.snappy, value: selected)
+    }
+}
+
+/// Circular custom-color control: a rainbow ring that opens the system color panel.
+/// A near-invisible ColorPicker sits on top so the tap target is the styled circle.
+private struct CustomColorWell: View {
+    @Binding var color: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(AngularGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red],
+                                      center: .center))
+                .frame(width: 16, height: 16)
+                .overlay(Circle().fill(color).frame(width: 8, height: 8))
+                .overlay(Circle().strokeBorder(.white.opacity(0.6), lineWidth: 1))
+            ColorPicker("", selection: $color)
+                .labelsHidden()
+                .opacity(0.02)
+                .frame(width: 16, height: 16)
+        }
+        .help("Custom color")
     }
 }
