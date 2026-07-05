@@ -52,6 +52,7 @@ struct SettingsView: View {
                     ForEach(AppSettings.RecordFormat.allCases) { Text($0.title).tag($0) }
                 }
                 Stepper("Frame rate: \(settings.recordFPS) fps", value: $settings.recordFPS, in: 10...60, step: 5)
+                Toggle("Record system audio", isOn: $settings.recordSystemAudio)
             }
             Section("Save location") {
                 HStack {

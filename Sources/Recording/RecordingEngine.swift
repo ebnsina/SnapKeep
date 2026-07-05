@@ -9,6 +9,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
     private var stream: SCStream?
     private var writer: AVAssetWriter?
     private var videoInput: AVAssetWriterInput?
+    private var audioInput: AVAssetWriterInput?
     private var sessionStarted = false
     private var outputURL: URL?
     private var completion: ((URL?) -> Void)?
@@ -17,7 +18,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
 
     /// Start recording the given display. `completion` fires (on the main thread) with the
     /// finished file URL, or nil on failure, after `stop()`.
-    func start(displayID: CGDirectDisplayID, scale: Int, fps: Int) async throws {
+    func start(displayID: CGDirectDisplayID, scale: Int, fps: Int, captureAudio: Bool = false) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first(where: { $0.displayID == displayID })
                 ?? content.displays.first else {
@@ -43,6 +44,11 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         config.pixelFormat = kCVPixelFormatType_32BGRA
         config.showsCursor = true
         config.queueDepth = 6
+        if captureAudio {
+            config.capturesAudio = true
+            config.sampleRate = 48000
+            config.channelCount = 2
+        }
 
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("rec-\(UUID().uuidString).mp4")
@@ -57,6 +63,18 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
         guard writer.canAdd(input) else { throw CaptureError.captureFailed("writer rejected input") }
         writer.add(input)
 
+        if captureAudio {
+            let audioSettings: [String: Any] = [
+                AVFormatIDKey: kAudioFormatMPEG4AAC,
+                AVSampleRateKey: 48000,
+                AVNumberOfChannelsKey: 2,
+                AVEncoderBitRateKey: 128_000
+            ]
+            let aInput = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
+            aInput.expectsMediaDataInRealTime = true
+            if writer.canAdd(aInput) { writer.add(aInput); self.audioInput = aInput }
+        }
+
         self.outputURL = url
         self.writer = writer
         self.videoInput = input
@@ -64,6 +82,9 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)
+        if captureAudio {
+            try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: queue)
+        }
         self.stream = stream
         try await stream.startCapture()
     }
@@ -76,6 +97,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             guard let self else { return }
             self.queue.async {
                 self.videoInput?.markAsFinished()
+                self.audioInput?.markAsFinished()
                 self.writer?.finishWriting { [weak self] in
                     guard let self else { return }
                     let url = self.writer?.status == .completed ? self.outputURL : nil
@@ -84,6 +106,7 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
                     self.stream = nil
                     self.writer = nil
                     self.videoInput = nil
+                    self.audioInput = nil
                     DispatchQueue.main.async { done?(url) }
                 }
             }
@@ -94,9 +117,16 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer,
                 of type: SCStreamOutputType) {
-        guard type == .screen, sampleBuffer.isValid,
-              let writer, let input = videoInput else { return }
+        guard sampleBuffer.isValid, let writer else { return }
 
+        // Audio: only after the session has started (video establishes the timeline).
+        if type == .audio {
+            guard writer.status == .writing, let audio = audioInput, audio.isReadyForMoreMediaData else { return }
+            audio.append(sampleBuffer)
+            return
+        }
+
+        guard type == .screen, let input = videoInput else { return }
         // Only append complete frames (skip idle/blank status updates).
         guard let attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, createIfNecessary: false)
                 as? [[SCStreamFrameInfo: Any]],

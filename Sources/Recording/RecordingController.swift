@@ -29,9 +29,10 @@ final class RecordingController {
         let scale = Int(screen?.backingScaleFactor ?? 2)
         let fps = AppSettings.shared.recordFPS
 
+        let audio = AppSettings.shared.recordSystemAudio
         Task {
             do {
-                try await engine.start(displayID: displayID, scale: scale, fps: fps)
+                try await engine.start(displayID: displayID, scale: scale, fps: fps, captureAudio: audio)
                 isRecording = true
                 elapsed = 0
                 showControlBar()

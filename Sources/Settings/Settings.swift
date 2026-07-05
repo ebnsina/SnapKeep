@@ -49,6 +49,10 @@ final class AppSettings {
     var recordFPS: Int {
         didSet { defaults.set(recordFPS, forKey: "recordFPS") }
     }
+    /// Capture system audio while recording (no mic; uses Screen Recording permission).
+    var recordSystemAudio: Bool {
+        didSet { defaults.set(recordSystemAudio, forKey: "recordSystemAudio") }
+    }
 
     private init() {
         format = ImageFormat(rawValue: defaults.string(forKey: "format") ?? "png") ?? .png
@@ -58,6 +62,7 @@ final class AppSettings {
         playSound = defaults.object(forKey: "playSound") as? Bool ?? true
         recordFormat = RecordFormat(rawValue: defaults.string(forKey: "recordFormat") ?? "mp4") ?? .mp4
         recordFPS = defaults.object(forKey: "recordFPS") as? Int ?? 30
+        recordSystemAudio = defaults.object(forKey: "recordSystemAudio") as? Bool ?? false
     }
 
     var saveDirectory: URL {
