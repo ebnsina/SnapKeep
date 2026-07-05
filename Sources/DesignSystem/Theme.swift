@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// SnapKeep design tokens — spacing, radius, motion, and colors.
+/// Aperi design tokens — spacing, radius, motion, and colors.
 /// Keep everything routed through here so the whole app stays visually consistent.
 enum Theme {
     // MARK: Spacing (4 / 8 pt scale)

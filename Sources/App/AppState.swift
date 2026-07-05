@@ -30,7 +30,7 @@ final class AppState {
         ScreenPermissions.openSystemSettings()
     }
 
-    /// M0 action: capture the whole display, copy to clipboard, and save to ~/Pictures/SnapKeep.
+    /// M0 action: capture the whole display, copy to clipboard, and save to ~/Pictures/Aperi.
     func captureFullScreen() {
         Task {
             do {

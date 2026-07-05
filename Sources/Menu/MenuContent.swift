@@ -30,8 +30,8 @@ struct MenuContent: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(Theme.brandGradient)
             VStack(alignment: .leading, spacing: 0) {
-                Text("SnapKeep").font(.headline)
-                Text("Capture · Annotate · Keep")
+                Text(Brand.name).font(.headline)
+                Text(Brand.tagline)
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
@@ -65,7 +65,7 @@ struct MenuContent: View {
         VStack(alignment: .leading, spacing: Theme.Space.sm) {
             Label("Screen Recording permission needed", systemImage: "lock.shield")
                 .font(.subheadline.weight(.medium))
-            Text("SnapKeep can't capture the screen until you grant access in System Settings, then relaunch.")
+            Text("\(Brand.name) can't capture the screen until you grant access in System Settings, then relaunch.")
                 .font(.caption).foregroundStyle(.secondary)
             Button("Grant Access…") { app.requestPermission() }
                 .buttonStyle(.borderedProminent)

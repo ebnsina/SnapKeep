@@ -9,7 +9,7 @@ enum CaptureError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notAuthorized: return "SnapKeep needs Screen Recording permission."
+        case .notAuthorized: return "\(Brand.name) needs Screen Recording permission."
         case .noDisplay: return "No display was found to capture."
         case .captureFailed(let why): return "Capture failed: \(why)"
         }

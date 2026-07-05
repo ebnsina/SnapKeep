@@ -3,20 +3,20 @@ import UniformTypeIdentifiers
 
 /// Saves captures to disk and puts them on the clipboard. Fully local — no network.
 enum CaptureStore {
-    /// Where captures are written by default: ~/Pictures/SnapKeep.
+    /// Where captures are written by default: ~/Pictures/<Brand>.
     static var defaultDirectory: URL {
         let base = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser
-        let dir = base.appendingPathComponent("SnapKeep", isDirectory: true)
+        let dir = base.appendingPathComponent(Brand.saveFolderName, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 
-    /// Timestamped filename, e.g. `SnapKeep 2026-07-05 at 14.30.12.png`.
+    /// Timestamped filename, e.g. `Aperi 2026-07-05 at 14.30.12.png`.
     static func suggestedName(ext: String = "png") -> String {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
-        return "SnapKeep \(f.string(from: Date())).\(ext)"
+        return "\(Brand.filePrefix) \(f.string(from: Date())).\(ext)"
     }
 
     @discardableResult

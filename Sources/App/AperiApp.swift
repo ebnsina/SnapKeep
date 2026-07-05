@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SnapKeepApp: App {
+struct AperiApp: App {
     @State private var app = AppState()
 
     var body: some Scene {
