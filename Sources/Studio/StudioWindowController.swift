@@ -36,6 +36,18 @@ final class StudioWindowController {
     }
 }
 
+enum LogoCorner: String, CaseIterable, Identifiable {
+    case topLeft = "Top Left", topRight = "Top Right"
+    case bottomLeft = "Bottom Left", bottomRight = "Bottom Right"
+    var id: String { rawValue }
+    var alignment: Alignment {
+        switch self {
+        case .topLeft: .topLeading; case .topRight: .topTrailing
+        case .bottomLeft: .bottomLeading; case .bottomRight: .bottomTrailing
+        }
+    }
+}
+
 // MARK: - Model
 
 @MainActor
@@ -57,6 +69,11 @@ final class StudioModel {
     var generatingCaptions = false
 
     var processingSilence = false
+
+    var logoURL: URL?
+    var logoImage: NSImage?
+    var logoCorner: LogoCorner = .topRight
+    var logoScale: Double = 0.15
 
     /// The caption line active at the current playhead (for live preview).
     var currentCaption: String? {
@@ -158,6 +175,13 @@ final class StudioModel {
         }
     }
 
+    // MARK: Logo
+
+    func setLogo(_ newURL: URL?) {
+        logoURL = newURL
+        logoImage = newURL.flatMap { NSImage(contentsOf: $0) }
+    }
+
     // MARK: Captions
 
     func generateCaptions() async {
@@ -168,9 +192,11 @@ final class StudioModel {
         generatingCaptions = false
     }
 
-    /// A video composition that burns the caption lines in as timed overlays.
-    private func makeCaptionComposition(for asset: AVAsset) async -> AVMutableVideoComposition? {
-        guard captionsEnabled, !captions.isEmpty,
+    /// A video composition that burns in captions (timed) and/or a logo image overlay.
+    private func makeOverlayComposition(for asset: AVAsset) async -> AVMutableVideoComposition? {
+        let hasCaptions = captionsEnabled && !captions.isEmpty
+        let hasLogo = logoImage != nil
+        guard hasCaptions || hasLogo,
               let track = try? await asset.loadTracks(withMediaType: .video).first else { return nil }
         let natural = (try? await track.load(.naturalSize)) ?? CGSize(width: 1280, height: 720)
         let transform = (try? await track.load(.preferredTransform)) ?? .identity
@@ -187,8 +213,22 @@ final class StudioModel {
         let overlay = CALayer(); overlay.frame = parent.frame
         parent.addSublayer(videoLayer); parent.addSublayer(overlay)
 
+        // Logo image (static, corner-anchored).
+        if let logoImage, let cg = logoImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            let w = size.width * logoScale
+            let h = w * (CGFloat(cg.height) / CGFloat(cg.width))
+            let margin = size.width * 0.03
+            let x = (logoCorner == .topLeft || logoCorner == .bottomLeft) ? margin : size.width - w - margin
+            let y = (logoCorner == .bottomLeft || logoCorner == .bottomRight) ? margin : size.height - h - margin
+            let layer = CALayer()
+            layer.frame = CGRect(x: x, y: y, width: w, height: h)
+            layer.contents = cg
+            layer.contentsGravity = .resizeAspect
+            overlay.addSublayer(layer)
+        }
+
         let fontSize = size.height * 0.05
-        for cap in captions {
+        for cap in (hasCaptions ? captions : []) {
             let text = CATextLayer()
             text.string = cap.text
             text.font = CTFontCreateWithName("HelveticaNeue-Bold" as CFString, fontSize, nil)
@@ -283,7 +323,7 @@ final class StudioModel {
         session.outputURL = out
         session.outputFileType = .mp4
         session.audioMix = mix
-        session.videoComposition = await makeCaptionComposition(for: asset)
+        session.videoComposition = await makeOverlayComposition(for: asset)
         session.timeRange = CMTimeRange(
             start: CMTime(seconds: trimStart, preferredTimescale: 600),
             end: CMTime(seconds: max(trimEnd, trimStart + 0.1), preferredTimescale: 600))
@@ -320,12 +360,24 @@ private struct StudioView: View {
                             .shadow(radius: 4)
                     }
                 }
+                .overlay {
+                    if let logo = model.logoImage {
+                        GeometryReader { geo in
+                            Image(nsImage: logo).resizable().scaledToFit()
+                                .frame(width: geo.size.width * model.logoScale)
+                                .padding(14)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: model.logoCorner.alignment)
+                        }
+                        .allowsHitTesting(false)
+                    }
+                }
 
             TrimBar(model: model)
 
             musicRow
             captionsRow
             silenceRow
+            logoRow
 
             HStack {
                 Text("\(timeString(model.trimStart)) – \(timeString(model.trimEnd))")
@@ -409,6 +461,35 @@ private struct StudioView: View {
         }
         .padding(Theme.Space.sm)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+    }
+
+    @ViewBuilder private var logoRow: some View {
+        HStack(spacing: Theme.Space.sm) {
+            Image(systemName: "photo.badge.plus").foregroundStyle(.secondary)
+            if model.logoImage != nil {
+                Text("Logo").font(.callout)
+                Picker("", selection: $model.logoCorner) {
+                    ForEach(LogoCorner.allCases) { Text($0.rawValue).tag($0) }
+                }.labelsHidden().frame(width: 130)
+                Slider(value: $model.logoScale, in: 0.05...0.4).controlSize(.small).frame(width: 80).tint(Theme.accent)
+                Spacer()
+                Button { model.setLogo(nil) } label: { Image(systemName: "xmark.circle.fill") }
+                    .buttonStyle(.plain).foregroundStyle(.tertiary)
+            } else {
+                Text("Add a logo / watermark").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("Choose Image…") { chooseLogo() }
+            }
+        }
+        .padding(Theme.Space.sm)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+    }
+
+    private func chooseLogo() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.image, .png, .jpeg]
+        if panel.runModal() == .OK, let url = panel.url { model.setLogo(url) }
     }
 
     private func chooseMusic() {
