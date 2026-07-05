@@ -36,18 +36,6 @@ final class StudioWindowController {
     }
 }
 
-enum LogoCorner: String, CaseIterable, Identifiable {
-    case topLeft = "Top Left", topRight = "Top Right"
-    case bottomLeft = "Bottom Left", bottomRight = "Bottom Right"
-    var id: String { rawValue }
-    var alignment: Alignment {
-        switch self {
-        case .topLeft: .topLeading; case .topRight: .topTrailing
-        case .bottomLeft: .bottomLeading; case .bottomRight: .bottomTrailing
-        }
-    }
-}
-
 // MARK: - Model
 
 @MainActor
@@ -72,8 +60,11 @@ final class StudioModel {
 
     var logoURL: URL?
     var logoImage: NSImage?
-    var logoCorner: LogoCorner = .topRight
+    var logoPos = CGPoint(x: 0.86, y: 0.12) // normalized center, y from top
     var logoScale: Double = 0.15
+
+    var thumbnails: [NSImage] = []
+    var isPlaying = false
 
     /// The caption line active at the current playhead (for live preview).
     var currentCaption: String? {
@@ -104,6 +95,36 @@ final class StudioModel {
                 if self.current >= self.trimEnd { self.seek(to: self.trimStart) }
             }
         }
+        await generateThumbnails()
+    }
+
+    func togglePlay() {
+        if isPlaying {
+            player.pause()
+        } else {
+            if current >= trimEnd - 0.05 { seek(to: trimStart) }
+            player.play()
+        }
+        isPlaying.toggle()
+    }
+
+    private func generateThumbnails(count: Int = 14) async {
+        let asset = AVURLAsset(url: url)
+        let gen = AVAssetImageGenerator(asset: asset)
+        gen.appliesPreferredTrackTransform = true
+        gen.maximumSize = CGSize(width: 220, height: 140)
+        gen.requestedTimeToleranceBefore = CMTime(seconds: 0.6, preferredTimescale: 600)
+        gen.requestedTimeToleranceAfter = CMTime(seconds: 0.6, preferredTimescale: 600)
+        let dur = max(duration, 0.1)
+        let times = (0..<count).map { CMTime(seconds: dur * Double($0) / Double(count), preferredTimescale: 600) }
+
+        var pairs: [(Double, NSImage)] = []
+        for await result in gen.images(for: times) {
+            if let cg = try? result.image {
+                pairs.append((result.requestedTime.seconds, NSImage(cgImage: cg, size: .zero)))
+            }
+        }
+        thumbnails = pairs.sorted { $0.0 < $1.0 }.map { $0.1 }
     }
 
     func seek(to seconds: Double) {
@@ -213,15 +234,14 @@ final class StudioModel {
         let overlay = CALayer(); overlay.frame = parent.frame
         parent.addSublayer(videoLayer); parent.addSublayer(overlay)
 
-        // Logo image (static, corner-anchored).
+        // Logo image at a free (normalized-center) position.
         if let logoImage, let cg = logoImage.cgImage(forProposedRect: nil, context: nil, hints: nil) {
             let w = size.width * logoScale
             let h = w * (CGFloat(cg.height) / CGFloat(cg.width))
-            let margin = size.width * 0.03
-            let x = (logoCorner == .topLeft || logoCorner == .bottomLeft) ? margin : size.width - w - margin
-            let y = (logoCorner == .bottomLeft || logoCorner == .bottomRight) ? margin : size.height - h - margin
+            let cx = size.width * logoPos.x
+            let cy = size.height * (1 - logoPos.y) // CALayer origin is bottom-left
             let layer = CALayer()
-            layer.frame = CGRect(x: x, y: y, width: w, height: h)
+            layer.frame = CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h)
             layer.contents = cg
             layer.contentsGravity = .resizeAspect
             overlay.addSublayer(layer)
@@ -365,14 +385,20 @@ private struct StudioView: View {
                         GeometryReader { geo in
                             Image(nsImage: logo).resizable().scaledToFit()
                                 .frame(width: geo.size.width * model.logoScale)
-                                .padding(14)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: model.logoCorner.alignment)
+                                .shadow(color: .black.opacity(0.25), radius: 3)
+                                .position(x: geo.size.width * model.logoPos.x,
+                                          y: geo.size.height * model.logoPos.y)
+                                .gesture(DragGesture().onChanged { v in
+                                    model.logoPos = CGPoint(
+                                        x: min(max(v.location.x / geo.size.width, 0), 1),
+                                        y: min(max(v.location.y / geo.size.height, 0), 1))
+                                })
                         }
-                        .allowsHitTesting(false)
                     }
                 }
 
-            TrimBar(model: model)
+            transportRow
+            Timeline(model: model)
 
             musicRow
             captionsRow
@@ -463,16 +489,29 @@ private struct StudioView: View {
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
     }
 
+    private var transportRow: some View {
+        HStack(spacing: Theme.Space.md) {
+            Button { model.togglePlay() } label: {
+                Image(systemName: model.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 34, height: 34)
+                    .background(Theme.accent, in: Circle())
+                    .foregroundStyle(.white)
+            }.buttonStyle(.plain)
+            Text(timeString(model.current)).font(.system(.callout, design: .monospaced))
+            Spacer()
+            Text(timeString(model.duration)).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary)
+        }
+    }
+
     @ViewBuilder private var logoRow: some View {
         HStack(spacing: Theme.Space.sm) {
             Image(systemName: "photo.badge.plus").foregroundStyle(.secondary)
             if model.logoImage != nil {
-                Text("Logo").font(.callout)
-                Picker("", selection: $model.logoCorner) {
-                    ForEach(LogoCorner.allCases) { Text($0.rawValue).tag($0) }
-                }.labelsHidden().frame(width: 130)
-                Slider(value: $model.logoScale, in: 0.05...0.4).controlSize(.small).frame(width: 80).tint(Theme.accent)
+                Text("Logo — drag to move").font(.callout).foregroundStyle(.secondary)
                 Spacer()
+                Image(systemName: "arrow.down.left.and.arrow.up.right").font(.caption).foregroundStyle(.secondary)
+                Slider(value: $model.logoScale, in: 0.05...0.4).controlSize(.small).frame(width: 110).tint(Theme.accent)
                 Button { model.setLogo(nil) } label: { Image(systemName: "xmark.circle.fill") }
                     .buttonStyle(.plain).foregroundStyle(.tertiary)
             } else {
@@ -520,56 +559,81 @@ private struct PlayerView: NSViewRepresentable {
     }
 }
 
-/// A timeline with draggable in/out handles and a playhead.
-private struct TrimBar: View {
+/// A professional trim timeline: a thumbnail filmstrip, dimmed out-of-range areas, draggable
+/// in/out handles, a playhead, and click/drag-to-scrub.
+private struct Timeline: View {
     @Bindable var model: StudioModel
+    private let height: CGFloat = 56
 
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let dur = max(model.duration, 0.1)
             let x = { (t: Double) in CGFloat(t / dur) * w }
+            let sx = x(model.trimStart), ex = x(model.trimEnd)
 
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary).frame(height: 46)
+                filmstrip(width: w)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { v in
+                        let t = min(max(Double(v.location.x / w) * dur, 0), dur)
+                        model.seek(to: t)
+                    })
 
-                // Selected range.
+                // Dim outside the trim range.
+                Rectangle().fill(.black.opacity(0.55)).frame(width: max(0, sx), height: height)
+                Rectangle().fill(.black.opacity(0.55)).frame(width: max(0, w - ex), height: height).offset(x: ex)
+
+                // Trim border.
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Theme.accent.opacity(0.22))
-                    .frame(width: max(0, x(model.trimEnd) - x(model.trimStart)), height: 46)
-                    .offset(x: x(model.trimStart))
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(Theme.accent, lineWidth: 2)
-                    .frame(width: max(0, x(model.trimEnd) - x(model.trimStart)), height: 46)
-                    .offset(x: x(model.trimStart))
+                    .strokeBorder(Theme.accent, lineWidth: 2.5)
+                    .frame(width: max(0, ex - sx), height: height).offset(x: sx)
 
                 // Playhead.
-                Rectangle().fill(.white).frame(width: 2, height: 46).offset(x: x(model.current))
+                Capsule().fill(.white).frame(width: 3, height: height + 8)
+                    .shadow(radius: 2).offset(x: max(0, x(model.current) - 1.5), y: -4)
 
-                // Handles.
-                handle.offset(x: x(model.trimStart) - 6)
+                handle.offset(x: sx - 7)
                     .gesture(drag(in: w, dur: dur) {
-                        model.trimStart = clamp($0, 0, model.trimEnd - 0.2, dur); model.seek(to: model.trimStart)
+                        model.trimStart = clamp($0, 0, model.trimEnd - 0.3, dur); model.seek(to: model.trimStart)
                     })
-                handle.offset(x: x(model.trimEnd) - 6)
+                handle.offset(x: ex - 7)
                     .gesture(drag(in: w, dur: dur) {
-                        model.trimEnd = clamp($0, model.trimStart + 0.2, dur, dur)
+                        model.trimEnd = clamp($0, model.trimStart + 0.3, dur, dur); model.seek(to: model.trimEnd)
                     })
             }
+            .frame(height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .frame(height: 46)
+        .frame(height: height)
+    }
+
+    private func filmstrip(width: CGFloat) -> some View {
+        Group {
+            if model.thumbnails.isEmpty {
+                RoundedRectangle(cornerRadius: 8).fill(.quaternary)
+            } else {
+                HStack(spacing: 0) {
+                    ForEach(model.thumbnails.indices, id: \.self) { i in
+                        Image(nsImage: model.thumbnails[i]).resizable().scaledToFill()
+                            .frame(width: width / CGFloat(model.thumbnails.count), height: height)
+                            .clipped()
+                    }
+                }
+            }
+        }
+        .frame(width: width, height: height)
     }
 
     private var handle: some View {
-        RoundedRectangle(cornerRadius: 4).fill(Theme.accent)
-            .frame(width: 12, height: 52)
-            .overlay(Rectangle().fill(.white.opacity(0.9)).frame(width: 2, height: 20))
+        RoundedRectangle(cornerRadius: 5).fill(Theme.accent)
+            .frame(width: 14, height: height + 8).offset(y: -4)
+            .overlay(RoundedRectangle(cornerRadius: 1).fill(.white.opacity(0.9)).frame(width: 2.5, height: 22).offset(y: -4))
+            .shadow(color: .black.opacity(0.2), radius: 2)
     }
 
     private func drag(in width: CGFloat, dur: Double, _ update: @escaping (Double) -> Void) -> some Gesture {
-        DragGesture(minimumDistance: 0).onChanged { v in
-            update(Double(v.location.x / width) * dur)
-        }
+        DragGesture(minimumDistance: 0).onChanged { v in update(Double(v.location.x / width) * dur) }
     }
 
     private func clamp(_ v: Double, _ lo: Double, _ hi: Double, _ dur: Double) -> Double {
