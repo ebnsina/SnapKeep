@@ -20,5 +20,7 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 ebnsina. MIT Licensed.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>SnapKeep transcribes your recording on-device to generate captions. Audio never leaves your Mac.</string>
 </dict>
 </plist>

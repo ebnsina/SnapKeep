@@ -52,6 +52,16 @@ final class StudioModel {
     var musicURL: URL?
     var musicVolume: Double = 0.6
 
+    var captions: [Caption] = []
+    var captionsEnabled = false
+    var generatingCaptions = false
+
+    /// The caption line active at the current playhead (for live preview).
+    var currentCaption: String? {
+        guard captionsEnabled else { return nil }
+        return captions.first { current >= $0.start && current <= $0.end }?.text
+    }
+
     private var timeObserver: Any?
 
     init(url: URL) {
@@ -144,9 +154,70 @@ final class StudioModel {
         }
     }
 
+    // MARK: Captions
+
+    func generateCaptions() async {
+        generatingCaptions = true
+        let caps = await CaptionTranscriber.transcribe(url: url)
+        captions = caps
+        captionsEnabled = !caps.isEmpty
+        generatingCaptions = false
+    }
+
+    /// A video composition that burns the caption lines in as timed overlays.
+    private func makeCaptionComposition(for asset: AVAsset) async -> AVMutableVideoComposition? {
+        guard captionsEnabled, !captions.isEmpty,
+              let track = try? await asset.loadTracks(withMediaType: .video).first else { return nil }
+        let natural = (try? await track.load(.naturalSize)) ?? CGSize(width: 1280, height: 720)
+        let transform = (try? await track.load(.preferredTransform)) ?? .identity
+        let r = natural.applying(transform)
+        let size = CGSize(width: abs(r.width) > 0 ? abs(r.width) : natural.width,
+                          height: abs(r.height) > 0 ? abs(r.height) : natural.height)
+        let total = max(duration, 0.1)
+
+        let vc = AVMutableVideoComposition(propertiesOf: asset)
+        vc.renderSize = size
+
+        let parent = CALayer(); parent.frame = CGRect(origin: .zero, size: size)
+        let videoLayer = CALayer(); videoLayer.frame = parent.frame
+        let overlay = CALayer(); overlay.frame = parent.frame
+        parent.addSublayer(videoLayer); parent.addSublayer(overlay)
+
+        let fontSize = size.height * 0.05
+        for cap in captions {
+            let text = CATextLayer()
+            text.string = cap.text
+            text.font = CTFontCreateWithName("HelveticaNeue-Bold" as CFString, fontSize, nil)
+            text.fontSize = fontSize
+            text.alignmentMode = .center
+            text.foregroundColor = CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+            text.shadowColor = CGColor(red: 0, green: 0, blue: 0, alpha: 1)
+            text.shadowOpacity = 1; text.shadowRadius = 4; text.shadowOffset = .zero
+            text.isWrapped = true
+            text.contentsScale = 2
+            text.frame = CGRect(x: size.width * 0.08, y: size.height * 0.07,
+                                width: size.width * 0.84, height: fontSize * 2.4)
+            text.opacity = 0
+
+            let anim = CAKeyframeAnimation(keyPath: "opacity")
+            let s = min(max(cap.start / total, 0), 1)
+            let e = min(max(cap.end / total, s + 0.0001), 1)
+            anim.values = [0, 0, 1, 1, 0, 0]
+            anim.keyTimes = [0, s, s, e, e, 1] as [NSNumber]
+            anim.duration = total
+            anim.beginTime = AVCoreAnimationBeginTimeAtZero
+            anim.isRemovedOnCompletion = false
+            anim.fillMode = .both
+            text.add(anim, forKey: "opacity")
+            overlay.addSublayer(text)
+        }
+        vc.animationTool = AVVideoCompositionCoreAnimationTool(postProcessingAsVideoLayer: videoLayer, in: parent)
+        return vc
+    }
+
     // MARK: Export
 
-    /// Export the trimmed range (with music if set) to a new MP4. Nil on failure.
+    /// Export the trimmed range (with music + captions if set) to a new MP4. Nil on failure.
     func export() async -> URL? {
         let asset: AVAsset
         let mix: AVAudioMix?
@@ -162,6 +233,7 @@ final class StudioModel {
         session.outputURL = out
         session.outputFileType = .mp4
         session.audioMix = mix
+        session.videoComposition = await makeCaptionComposition(for: asset)
         session.timeRange = CMTimeRange(
             start: CMTime(seconds: trimStart, preferredTimescale: 600),
             end: CMTime(seconds: max(trimEnd, trimStart + 0.1), preferredTimescale: 600))
@@ -186,10 +258,23 @@ private struct StudioView: View {
             VideoPlayer(player: model.player)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .overlay(alignment: .bottom) {
+                    if let caption = model.currentCaption {
+                        Text(caption)
+                            .font(.system(size: 16, weight: .semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
+                            .padding(.bottom, 18).padding(.horizontal, 24)
+                            .shadow(radius: 4)
+                    }
+                }
 
             TrimBar(model: model)
 
             musicRow
+            captionsRow
 
             HStack {
                 Text("\(timeString(model.trimStart)) – \(timeString(model.trimEnd))")
@@ -233,6 +318,27 @@ private struct StudioView: View {
                 Button("Choose Audio…") { chooseMusic() }
             }
             if model.musicURL != nil { Spacer() }
+        }
+        .padding(Theme.Space.sm)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+    }
+
+    @ViewBuilder private var captionsRow: some View {
+        HStack(spacing: Theme.Space.sm) {
+            Image(systemName: "captions.bubble").foregroundStyle(.secondary)
+            if model.generatingCaptions {
+                Text("Transcribing on-device…").font(.callout).foregroundStyle(.secondary)
+                Spacer(); ProgressView().controlSize(.small)
+            } else if model.captions.isEmpty {
+                Text("Auto-generate captions").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("Generate") { Task { await model.generateCaptions() } }
+            } else {
+                Text("\(model.captions.count) caption lines").font(.callout)
+                Spacer()
+                Toggle("Show", isOn: $model.captionsEnabled).toggleStyle(.switch).controlSize(.mini)
+                Button("Regenerate") { Task { await model.generateCaptions() } }
+            }
         }
         .padding(Theme.Space.sm)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
