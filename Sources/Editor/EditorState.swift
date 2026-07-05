@@ -92,7 +92,7 @@ final class EditorState {
         ctx.draw(baseImage, in: CGRect(x: 0, y: 0, width: pxW, height: pxH))
         // Annotations live in point space; scale up to pixel space to replay them.
         ctx.scaleBy(x: scale, y: scale)
-        for annotation in annotations { annotation.render(in: ctx) }
+        for annotation in annotations { annotation.render(in: ctx, base: baseImage, scale: scale) }
 
         NSGraphicsContext.restoreGraphicsState()
 

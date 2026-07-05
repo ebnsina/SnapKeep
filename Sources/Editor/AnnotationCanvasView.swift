@@ -24,8 +24,10 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
     override func draw(_ dirtyRect: CGRect) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         ctx.draw(state.baseImage, in: bounds) // scales pixels → points
-        for annotation in state.annotations { annotation.render(in: ctx) }
-        draft?.render(in: ctx)
+        for annotation in state.annotations {
+            annotation.render(in: ctx, base: state.baseImage, scale: state.scale)
+        }
+        draft?.render(in: ctx, base: state.baseImage, scale: state.scale)
     }
 
     // MARK: Mouse
@@ -35,6 +37,14 @@ final class AnnotationCanvasView: NSView, NSTextFieldDelegate {
 
         if state.tool == .text {
             beginTextEditing(at: p)
+            return
+        }
+        if state.tool == .step {
+            // Single click drops the next-numbered badge.
+            let n = state.annotations.filter { $0.kind == .step }.count + 1
+            state.add(Annotation(kind: .step, points: [p], color: state.color,
+                                 lineWidth: state.lineWidth, text: "\(n)"))
+            needsDisplay = true
             return
         }
         draft = Annotation(kind: state.tool, points: [p], color: state.color, lineWidth: state.lineWidth)

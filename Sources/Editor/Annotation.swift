@@ -4,7 +4,7 @@ import AppKit
 /// is shared by the live canvas and the final export so what you see is what you save.
 struct Annotation: Identifiable {
     enum Kind: String, CaseIterable, Identifiable {
-        case pen, marker, line, arrow, rect, ellipse, text
+        case pen, marker, line, arrow, rect, ellipse, text, step, pixelate
         var id: String { rawValue }
 
         var symbol: String {
@@ -16,6 +16,8 @@ struct Annotation: Identifiable {
             case .rect: return "rectangle"
             case .ellipse: return "circle"
             case .text: return "textformat"
+            case .step: return "1.circle.fill"
+            case .pixelate: return "mosaic"
             }
         }
 
@@ -28,8 +30,13 @@ struct Annotation: Identifiable {
             case .rect: return "Rectangle"
             case .ellipse: return "Ellipse"
             case .text: return "Text"
+            case .step: return "Step number"
+            case .pixelate: return "Pixelate / redact"
             }
         }
+
+        /// Tools placed with a single click rather than a drag.
+        var isClickToPlace: Bool { self == .step }
     }
 
     let id = UUID()
@@ -43,7 +50,8 @@ struct Annotation: Identifiable {
 
     // MARK: Rendering
 
-    func render(in ctx: CGContext) {
+    /// `base`/`scale` are only needed by pixelate (to sample the underlying pixels).
+    func render(in ctx: CGContext, base: CGImage? = nil, scale: CGFloat = 1) {
         ctx.saveGState()
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
@@ -72,8 +80,66 @@ struct Annotation: Identifiable {
             ctx.strokeEllipse(in: rect(points[0], points[1]))
         case .text:
             drawText(ctx)
+        case .step:
+            drawStep(ctx)
+        case .pixelate:
+            drawPixelate(ctx, base: base, scale: scale)
         }
         ctx.restoreGState()
+    }
+
+    /// Numbered badge (the number is stored in `text`).
+    private func drawStep(_ ctx: CGContext) {
+        guard let center = points.first else { return }
+        let radius = max(lineWidth * 4, 14)
+        let box = CGRect(x: center.x - radius, y: center.y - radius, width: radius*2, height: radius*2)
+        ctx.setFillColor(color.cgColor)
+        ctx.fillEllipse(in: box)
+        ctx.setStrokeColor(NSColor.white.cgColor)
+        ctx.setLineWidth(2)
+        ctx.strokeEllipse(in: box)
+
+        let label = text.isEmpty ? "1" : text
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: radius, weight: .bold),
+            .foregroundColor: NSColor.white
+        ]
+        let size = label.size(withAttributes: attrs)
+        let gctx = NSGraphicsContext(cgContext: ctx, flipped: false)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = gctx
+        label.draw(at: CGPoint(x: center.x - size.width/2, y: center.y - size.height/2), withAttributes: attrs)
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Pixelate the underlying capture inside the selected rect (privacy redaction).
+    private func drawPixelate(_ ctx: CGContext, base: CGImage?, scale: CGFloat) {
+        guard points.count >= 2, let base else { return }
+        let r = rect(points[0], points[1])
+        guard r.width > 1, r.height > 1 else { return }
+        // Point space (bottom-left) → base pixels (top-left).
+        let src = CGRect(x: r.minX * scale,
+                         y: CGFloat(base.height) - r.maxY * scale,
+                         width: r.width * scale, height: r.height * scale)
+        guard let cropped = base.cropping(to: src),
+              let pixels = Annotation.pixelate(cropped) else { return }
+        ctx.saveGState()
+        ctx.interpolationQuality = .none
+        ctx.draw(pixels, in: r)
+        ctx.restoreGState()
+    }
+
+    /// Downscale-then-upscale to produce a chunky mosaic.
+    static func pixelate(_ image: CGImage, blocks: Int = 14) -> CGImage? {
+        let ratio = CGFloat(image.height) / CGFloat(max(image.width, 1))
+        let smallW = max(1, blocks)
+        let smallH = max(1, Int(CGFloat(blocks) * ratio))
+        guard let ctx = CGContext(data: nil, width: smallW, height: smallH, bitsPerComponent: 8,
+                                  bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.interpolationQuality = .medium
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: smallW, height: smallH))
+        return ctx.makeImage()
     }
 
     private func strokePath(_ ctx: CGContext, points: [CGPoint]) {
