@@ -147,41 +147,97 @@ final class RegionSelectView: NSView {
     }
 
     /// Zoomed circular loupe showing pixels + hex color under the cursor.
+    /// A macOS-style magnifier pinned near the cursor: a rounded card with a crisp zoomed
+    /// pixel grid, a highlighted center pixel, and a hex + size readout below.
     private func drawLoupe(_ ctx: CGContext) {
         guard let cg = frozen.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
         let scale = window?.backingScaleFactor ?? 2
-        let loupeSize: CGFloat = 96
-        let zoom: CGFloat = 8
-        let sample = loupeSize / zoom // points sampled around cursor
 
-        var pos = CGPoint(x: mouseLocation.x + 20, y: mouseLocation.y + 20)
-        if pos.x + loupeSize > bounds.width { pos.x = mouseLocation.x - 20 - loupeSize }
-        if pos.y + loupeSize > bounds.height { pos.y = mouseLocation.y - 20 - loupeSize }
-        let loupeRect = CGRect(x: pos.x, y: pos.y, width: loupeSize, height: loupeSize)
+        let zoomSize: CGFloat = 108      // zoom area (square)
+        let readoutH: CGFloat = 40
+        let cardW = zoomSize
+        let cardH = zoomSize + readoutH
+        let pixels = 11                  // odd, so there's a true center pixel
+        let cell = zoomSize / CGFloat(pixels)
 
+        // Position offset from the cursor, clamped to the screen.
+        var x = mouseLocation.x + 22, y = mouseLocation.y - cardH - 22
+        if x + cardW > bounds.width { x = mouseLocation.x - cardW - 22 }
+        if y < 0 { y = mouseLocation.y + 22 }
+        let card = CGRect(x: x, y: y, width: cardW, height: cardH)
+        let zoomRect = CGRect(x: x, y: y + readoutH, width: zoomSize, height: zoomSize)
+
+        // Card background.
+        let cardPath = NSBezierPath(roundedRect: card, xRadius: 12, yRadius: 12)
+        NSColor.black.withAlphaComponent(0.85).setFill()
+        cardPath.fill()
+
+        // Zoomed pixels (nearest-neighbor for a crisp grid).
         ctx.saveGState()
-        NSBezierPath(ovalIn: loupeRect).addClip()
-        // Source pixels (top-left origin) around the cursor.
-        let srcX = (mouseLocation.x - sample/2) * scale
-        let srcY = (bounds.height - mouseLocation.y - sample/2) * scale
-        let srcRect = CGRect(x: srcX, y: srcY, width: sample*scale, height: sample*scale)
+        NSBezierPath(roundedRect: zoomRect.insetBy(dx: 3, dy: 3), xRadius: 8, yRadius: 8).addClip()
+        let samplePts = CGFloat(pixels)
+        let srcRect = CGRect(x: (mouseLocation.x - samplePts / 2) * scale,
+                             y: (bounds.height - mouseLocation.y - samplePts / 2) * scale,
+                             width: samplePts * scale, height: samplePts * scale)
+        var centerColor = NSColor.black
         if let cropped = cg.cropping(to: srcRect) {
             ctx.interpolationQuality = .none
-            ctx.draw(cropped, in: loupeRect) // draws right-side up in non-flipped view
+            ctx.draw(cropped, in: zoomRect.insetBy(dx: 3, dy: 3))
+            if let rep = readCenterPixel(cropped) { centerColor = rep }
         }
+        // subtle pixel grid
+        ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.08).cgColor)
+        ctx.setLineWidth(0.5)
+        for i in 1..<pixels {
+            let gx = zoomRect.minX + CGFloat(i) * cell
+            let gy = zoomRect.minY + CGFloat(i) * cell
+            ctx.move(to: CGPoint(x: gx, y: zoomRect.minY)); ctx.addLine(to: CGPoint(x: gx, y: zoomRect.maxY))
+            ctx.move(to: CGPoint(x: zoomRect.minX, y: gy)); ctx.addLine(to: CGPoint(x: zoomRect.maxX, y: gy))
+        }
+        ctx.strokePath()
         ctx.restoreGState()
 
-        // Ring + crosshair.
-        ctx.setStrokeColor(brandColor.cgColor)
-        ctx.setLineWidth(2)
-        ctx.strokeEllipse(in: loupeRect)
-        ctx.setStrokeColor(NSColor.white.withAlphaComponent(0.8).cgColor)
-        ctx.setLineWidth(1)
-        ctx.move(to: CGPoint(x: loupeRect.midX, y: loupeRect.minY))
-        ctx.addLine(to: CGPoint(x: loupeRect.midX, y: loupeRect.maxY))
-        ctx.move(to: CGPoint(x: loupeRect.minX, y: loupeRect.midY))
-        ctx.addLine(to: CGPoint(x: loupeRect.maxX, y: loupeRect.midY))
-        ctx.strokePath()
+        // Center pixel highlight.
+        let centerCell = CGRect(x: zoomRect.midX - cell / 2, y: zoomRect.midY - cell / 2, width: cell, height: cell)
+        ctx.setStrokeColor(brandColor.cgColor); ctx.setLineWidth(1.5); ctx.stroke(centerCell)
+
+        // Readout: hex + size.
+        let hex = hexString(centerColor)
+        let size = currentRect.width > 0
+            ? "\(Int(currentRect.width * scale))×\(Int(currentRect.height * scale))"
+            : "\(Int(mouseLocation.x * scale)), \(Int((bounds.height - mouseLocation.y) * scale))"
+        drawReadout(hex: hex, size: size, swatch: centerColor,
+                    in: CGRect(x: x, y: y, width: cardW, height: readoutH))
+
+        // Card border.
+        brandColor.withAlphaComponent(0.9).setStroke()
+        cardPath.lineWidth = 1; cardPath.stroke()
+    }
+
+    private func drawReadout(hex: String, size: String, swatch: NSColor, in rect: CGRect) {
+        let mono = NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+        // color swatch
+        let sw = CGRect(x: rect.minX + 8, y: rect.midY - 6, width: 12, height: 12)
+        swatch.setFill(); NSBezierPath(roundedRect: sw, xRadius: 3, yRadius: 3).fill()
+        NSColor.white.withAlphaComponent(0.3).setStroke(); NSBezierPath(roundedRect: sw, xRadius: 3, yRadius: 3).stroke()
+
+        let hexAttrs: [NSAttributedString.Key: Any] = [.font: mono, .foregroundColor: NSColor.white]
+        hex.draw(at: CGPoint(x: sw.maxX + 6, y: rect.midY + 1), withAttributes: hexAttrs)
+        let sizeAttrs: [NSAttributedString.Key: Any] = [.font: mono, .foregroundColor: NSColor.white.withAlphaComponent(0.6)]
+        size.draw(at: CGPoint(x: sw.maxX + 6, y: rect.midY - 12), withAttributes: sizeAttrs)
+    }
+
+    private func readCenterPixel(_ image: CGImage) -> NSColor? {
+        let cx = image.width / 2, cy = image.height / 2
+        guard let one = image.cropping(to: CGRect(x: cx, y: cy, width: 1, height: 1)) else { return nil }
+        return NSBitmapImageRep(cgImage: one).colorAt(x: 0, y: 0)?
+            .usingColorSpace(.deviceRGB)
+    }
+
+    private func hexString(_ color: NSColor) -> String {
+        guard let c = color.usingColorSpace(.deviceRGB) else { return "#000000" }
+        return String(format: "#%02X%02X%02X", Int(c.redComponent * 255),
+                      Int(c.greenComponent * 255), Int(c.blueComponent * 255))
     }
 
     private var brandColor: NSColor { Theme.accentNS }
