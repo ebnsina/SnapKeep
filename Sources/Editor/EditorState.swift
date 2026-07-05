@@ -64,6 +64,14 @@ final class EditorState {
         onChange?()
     }
 
+    /// Add several annotations as one undoable step (used by Smart Redact).
+    func addAll(_ list: [Annotation]) {
+        guard !list.isEmpty else { return }
+        checkpoint()
+        annotations.append(contentsOf: list)
+        onChange?()
+    }
+
     func undo() {
         guard let prev = undoStack.popLast() else { return }
         redoStack.append(annotations)

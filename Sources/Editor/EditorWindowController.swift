@@ -25,6 +25,7 @@ final class EditorWindowController {
             onCopyText: { [weak self] in self?.copyText() },
             onBeautify: { [weak self] in self?.beautify() },
             onPrint: { [weak self] in self?.printCapture() },
+            onRedact: { [weak self] in self?.redact() },
             onClose: { [weak self] in self?.finish(.closed) }
         )
 
@@ -112,6 +113,28 @@ final class EditorWindowController {
         op.run()
     }
 
+    /// Auto-detect faces / emails / card numbers and cover them with pixelate annotations.
+    private func redact() {
+        guard let state else { return }
+        let base = state.baseImage
+        let size = state.displaySize
+        Task {
+            let norm = await SmartRedactor.detect(in: base)
+            guard let state = self.state, !norm.isEmpty else { NSSound.beep(); return }
+            let annotations = norm.map { r -> Annotation in
+                // Normalized (bottom-left) → point space, padded a little for full coverage.
+                var rect = CGRect(x: r.minX * size.width, y: r.minY * size.height,
+                                  width: r.width * size.width, height: r.height * size.height)
+                rect = rect.insetBy(dx: -rect.width * 0.06, dy: -rect.height * 0.06)
+                return Annotation(kind: .pixelate,
+                                  points: [CGPoint(x: rect.minX, y: rect.minY),
+                                           CGPoint(x: rect.maxX, y: rect.maxY)],
+                                  color: state.color, lineWidth: state.lineWidth)
+            }
+            state.addAll(annotations)
+        }
+    }
+
     /// Open the Beautify window with the current flattened capture.
     private func beautify() {
         guard let state else { return }
@@ -148,6 +171,7 @@ private struct EditorRootView: View {
     let onCopyText: () -> Void
     let onBeautify: () -> Void
     let onPrint: () -> Void
+    let onRedact: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -156,7 +180,8 @@ private struct EditorRootView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             EditorToolbar(state: state, onCopy: onCopy, onSave: onSave,
                           onShare: onShare, onCopyText: onCopyText,
-                          onBeautify: onBeautify, onPrint: onPrint, onClose: onClose)
+                          onBeautify: onBeautify, onPrint: onPrint,
+                          onRedact: onRedact, onClose: onClose)
                 .padding(.vertical, Theme.Space.md)
         }
         .background(Color(red: 0.11, green: 0.11, blue: 0.13)) // neutral editor mat
