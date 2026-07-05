@@ -55,6 +55,7 @@ final class StudioModel {
     var captions: [Caption] = []
     var captionsEnabled = false
     var generatingCaptions = false
+    var captionsNote: String?
 
     var processingSilence = false
 
@@ -210,9 +211,16 @@ final class StudioModel {
 
     func generateCaptions() async {
         generatingCaptions = true
+        captionsNote = nil
+        guard await CaptionTranscriber.hasAudio(url: url) else {
+            captionsNote = "This recording has no audio to transcribe."
+            generatingCaptions = false
+            return
+        }
         let caps = await CaptionTranscriber.transcribe(url: url)
         captions = caps
         captionsEnabled = !caps.isEmpty
+        if caps.isEmpty { captionsNote = "No speech was detected." }
         generatingCaptions = false
     }
 
@@ -488,7 +496,9 @@ private struct StudioView: View {
                 Text("Transcribing on-device…").font(.callout).foregroundStyle(.secondary)
                 Spacer(); ProgressView().controlSize(.small)
             } else if model.captions.isEmpty {
-                Text("Auto-generate captions").font(.callout).foregroundStyle(.secondary)
+                Text(model.captionsNote ?? "Auto-generate captions")
+                    .font(.callout)
+                    .foregroundStyle(model.captionsNote == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Color.orange))
                 Spacer()
                 Button("Generate") { Task { await model.generateCaptions() } }
             } else {

@@ -1,4 +1,5 @@
 @preconcurrency import Speech
+import AVFoundation
 import Foundation
 
 /// A timed caption line.
@@ -17,7 +18,15 @@ enum CaptionTranscriber {
         }
     }
 
+    /// Whether the file has an audio track at all — Speech aborts on audio-less input.
+    static func hasAudio(url: URL) async -> Bool {
+        let tracks = (try? await AVURLAsset(url: url).loadTracks(withMediaType: .audio)) ?? []
+        return !tracks.isEmpty
+    }
+
     static func transcribe(url: URL, wordsPerLine: Int = 7) async -> [Caption] {
+        // No audio track → SFSpeechURLRecognitionRequest crashes internally. Bail out safely.
+        guard await hasAudio(url: url) else { return [] }
         guard await authorize(), let recognizer = SFSpeechRecognizer(), recognizer.isAvailable else { return [] }
 
         let request = SFSpeechURLRecognitionRequest(url: url)
