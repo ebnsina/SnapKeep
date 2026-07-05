@@ -1,18 +1,21 @@
 import SwiftUI
 
-/// The dropdown shown from the menu-bar icon: a search field, a row of capture action tiles,
-/// and a list of recent captures. Fully theme-aware (adapts to light/dark).
+/// The dropdown shown from the menu-bar icon: a header, a grid of every capture/record tool,
+/// and a list of recent captures. Search is revealed on demand. Fully theme-aware.
 struct MenuContent: View {
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
+    @State private var showSearch = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: Theme.Space.md) {
-            topBar
+            header
+            if showSearch { searchField }
 
             if app.isAuthorized {
-                actionTiles
+                toolGrid
                 recent
             } else {
                 permissionPrompt
@@ -23,47 +26,54 @@ struct MenuContent: View {
         .onAppear { app.library.reload() }
     }
 
-    // MARK: Top bar (search + settings)
+    // MARK: Header
 
-    private var topBar: some View {
+    private var header: some View {
         HStack(spacing: Theme.Space.sm) {
-            HStack(spacing: 7) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13)).foregroundStyle(.secondary)
-                TextField("Search captures", text: $search)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
+            Image(systemName: "camera.viewfinder")
+                .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.accent)
+            Text(Brand.name).font(.headline)
+            Spacer()
+            iconButton("magnifyingglass", active: showSearch) {
+                withAnimation(Theme.Motion.snappy) { showSearch.toggle() }
+                if showSearch { searchFocused = true } else { search = "" }
             }
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(.quaternary.opacity(0.6), in: Capsule())
-
-            Button {
-                dismiss(); app.openSettings()
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 15))
-                    .frame(width: 32, height: 32)
-                    .foregroundStyle(.secondary)
-                    .background(.quaternary.opacity(0.6), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .help("Settings")
+            iconButton("gearshape") { dismiss(); app.openSettings() }
         }
     }
 
-    // MARK: Action tiles
+    private var searchField: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass").font(.system(size: 12)).foregroundStyle(.secondary)
+            TextField("Search recent captures", text: $search)
+                .textFieldStyle(.plain).font(.system(size: 13)).focused($searchFocused)
+            if !search.isEmpty {
+                Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                    .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(.quaternary.opacity(0.6), in: Capsule())
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
 
-    private var actionTiles: some View {
-        HStack(spacing: Theme.Space.xs) {
-            ActionTile(title: "Region", symbol: "rectangle.dashed", primary: true) { dismiss(); app.captureRegion() }
-            ActionTile(title: "Window", symbol: "macwindow") { dismiss(); app.captureWindow() }
-            ActionTile(title: "Full", symbol: "rectangle.inset.filled") { dismiss(); app.captureFullScreen() }
-            ActionTile(title: app.recorder.isRecording ? "Stop" : "Record",
-                       symbol: app.recorder.isRecording ? "stop.circle.fill" : "record.circle",
-                       tint: .red) { dismiss(); app.toggleRecording() }
-            ActionTile(title: "Scroll", symbol: "arrow.down.doc") { dismiss(); app.scrollingCapture() }
+    // MARK: Tools
+
+    private var toolGrid: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+            ToolTile(title: "Region", symbol: "rectangle.dashed", primary: true) { run { app.captureRegion() } }
+            ToolTile(title: "Window", symbol: "macwindow") { run { app.captureWindow() } }
+            ToolTile(title: "Full", symbol: "rectangle.inset.filled") { run { app.captureFullScreen() } }
+            ToolTile(title: "Scroll", symbol: "arrow.down.doc") { run { app.scrollingCapture() } }
+            ToolTile(title: app.recorder.isRecording ? "Stop" : "Record",
+                     symbol: app.recorder.isRecording ? "stop.circle.fill" : "record.circle",
+                     tint: .red) { run { app.toggleRecording() } }
+            ToolTile(title: "Rec. Area", symbol: "rectangle.dashed.badge.record", tint: .red) { run { app.recordRegion() } }
+            ToolTile(title: "Recapture", symbol: "arrow.clockwise") { run { app.recaptureLastRegion() } }
         }
     }
+
+    private func run(_ action: () -> Void) { dismiss(); action() }
 
     // MARK: Recent
 
@@ -91,9 +101,7 @@ struct MenuContent: View {
             .padding(.vertical, Theme.Space.sm)
         } else {
             VStack(spacing: 2) {
-                ForEach(items.prefix(6)) { item in
-                    RecentRow(item: item)
-                }
+                ForEach(items.prefix(6)) { RecentRow(item: $0) }
             }
         }
     }
@@ -117,11 +125,22 @@ struct MenuContent: View {
         .background(Theme.accent.opacity(0.08),
                     in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
     }
+
+    private func iconButton(_ symbol: String, active: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 14))
+                .frame(width: 30, height: 30)
+                .foregroundStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                .background(.quaternary.opacity(active ? 0 : 0.6), in: Circle())
+        }
+        .buttonStyle(.plain)
+    }
 }
 
-// MARK: - Action tile
+// MARK: - Tool tile
 
-private struct ActionTile: View {
+private struct ToolTile: View {
     let title: String
     let symbol: String
     var primary: Bool = false
@@ -131,18 +150,17 @@ private struct ActionTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 6) {
+            VStack(spacing: 5) {
                 ZStack {
                     RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
                         .fill(primary ? AnyShapeStyle(Theme.accent)
-                                      : AnyShapeStyle(.quaternary.opacity(hovering ? 1 : 0.6)))
+                                      : AnyShapeStyle(.quaternary.opacity(hovering ? 1 : 0.55)))
                     Image(systemName: symbol)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(primary ? AnyShapeStyle(.white)
-                                                 : AnyShapeStyle(tint ?? .primary))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(primary ? AnyShapeStyle(.white) : AnyShapeStyle(tint ?? .primary))
                 }
-                .frame(height: 44)
-                Text(title).font(.system(size: 11)).foregroundStyle(.secondary)
+                .frame(height: 42)
+                Text(title).font(.system(size: 10.5)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .buttonStyle(.plain)
