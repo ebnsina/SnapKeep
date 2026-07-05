@@ -25,4 +25,15 @@ mkdir -p build
 rm -rf build/SnapKeep.app
 cp -R .build/dd/Build/Products/Release/SnapKeep.app build/SnapKeep.app
 
+# Sign with the stable self-signed dev identity if present, so macOS keeps the
+# Screen Recording grant across rebuilds. Run ./scripts/make-dev-cert.sh once to set up.
+IDENTITY="SnapKeep Dev"
+if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+  codesign --force --sign "$IDENTITY" build/SnapKeep.app >/dev/null 2>&1 \
+    && echo "✓ Signed with '$IDENTITY' (Screen Recording grant persists)."
+else
+  echo "ℹ︎  No '$IDENTITY' cert — using ad-hoc signature (grant resets each rebuild)."
+  echo "   Run ./scripts/make-dev-cert.sh once to fix that."
+fi
+
 echo "✓ Built build/SnapKeep.app — open it with:  open build/SnapKeep.app"

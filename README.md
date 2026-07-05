@@ -16,7 +16,7 @@ gorgeous, fluid interface. Everything runs on-device — no accounts, no cloud, 
 
 ## Features
 
-- **Region capture** — `⌘⇧5` freezes the screen; drag to select any area with live
+- **Region capture** — `⌘⇧9` freezes the screen; drag to select any area with live
   pixel dimensions, crosshair guides, and an 8x magnifier loupe.
 - **Annotation editor** — mark up captures with pen, marker, line, arrow, rectangle,
   ellipse, and text, in any color and stroke width, with full undo/redo.

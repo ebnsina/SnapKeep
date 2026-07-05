@@ -29,18 +29,18 @@ enum Theme {
         static let bouncy: Animation = .bouncy(duration: 0.5, extraBounce: 0.15)
     }
 
-    // MARK: Brand color — dark cherry the whole app leans on.
-    static let accent = Color(red: 0.60, green: 0.10, blue: 0.20)      // #99192F
-    static let accentSoft = Color(red: 0.72, green: 0.16, blue: 0.27)  // #B72944
+    // MARK: Brand color — azure blue the whole app leans on.
+    static let accent = Color(red: 0.18, green: 0.49, blue: 0.97)      // #2E7DF7
+    static let accentSoft = Color(red: 0.35, green: 0.61, blue: 1.0)   // #5A9BFF
 
     static let brandGradient = LinearGradient(
-        colors: [Color(red: 0.56, green: 0.09, blue: 0.18),  // #8F1730
-                 Color(red: 0.36, green: 0.05, blue: 0.11)], // #5C0D1C
+        colors: [Color(red: 0.18, green: 0.49, blue: 0.97),  // #2E7DF7
+                 Color(red: 0.12, green: 0.37, blue: 0.88)], // #1F5FE0
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
 
     /// NSColor mirror of `accent`, for AppKit surfaces (overlay border, loupe ring).
-    static let accentNS = NSColor(red: 0.60, green: 0.10, blue: 0.20, alpha: 1)
+    static let accentNS = NSColor(red: 0.18, green: 0.49, blue: 0.97, alpha: 1)
 }
 
 extension View {

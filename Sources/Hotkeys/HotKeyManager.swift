@@ -23,8 +23,8 @@ final class HotKeyManager {
         handlers[.fullScreen] = fullScreen
 
         installDispatcher()
-        // Defaults mirror the menu: ⌘⇧5 region, ⌘⇧4 full screen.
-        add(.region, keyCode: UInt32(kVK_ANSI_5), modifiers: UInt32(cmdKey | shiftKey))
+        // Defaults mirror the menu: ⌘⇧9 region (Lightshot-style), ⌘⇧4 full screen.
+        add(.region, keyCode: UInt32(kVK_ANSI_9), modifiers: UInt32(cmdKey | shiftKey))
         add(.fullScreen, keyCode: UInt32(kVK_ANSI_4), modifiers: UInt32(cmdKey | shiftKey))
     }
 
