@@ -14,6 +14,7 @@ final class AppState {
 
     private let regionController = RegionCaptureController()
     private let windowController = WindowCaptureController()
+    private let regionSelector = RegionSelectorController()
     let recorder = RecordingController()
     private let hotKeys = HotKeyManager()
     private var editor: EditorWindowController?
@@ -43,6 +44,19 @@ final class AppState {
             guard let self else { return }
             guard let tempURL else { self.flash("Recording failed"); return }
             self.promptSaveRecording(tempURL: tempURL)
+        }
+    }
+
+    /// Record just a selected region. Toggles off if already recording.
+    func recordRegion() {
+        if recorder.isRecording { recorder.stop(); return }
+        Task {
+            guard let sel = await regionSelector.begin() else { return } // cancelled
+            recorder.startRegion(displayID: sel.displayID, scale: sel.scale, sourceRect: sel.sourceRect) { [weak self] tempURL in
+                guard let self else { return }
+                guard let tempURL else { self.flash("Recording failed"); return }
+                self.promptSaveRecording(tempURL: tempURL)
+            }
         }
     }
 

@@ -16,23 +16,31 @@ final class RecordingController {
 
     var isBusy = false // converting/finalizing
 
+    /// Toggle full-screen recording of the display under the cursor.
     func toggle(onFinished: @escaping (URL?) -> Void) {
-        if isRecording { stop() } else { start(onFinished: onFinished) }
-    }
-
-    private func start(onFinished: @escaping (URL?) -> Void) {
-        guard !isRecording else { return }
-        self.onFinished = onFinished
-
+        if isRecording { stop(); return }
         let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
         let displayID = (screen?.deviceDescription[.init("NSScreenNumber")] as? CGDirectDisplayID) ?? CGMainDisplayID()
         let scale = Int(screen?.backingScaleFactor ?? 2)
-        let fps = AppSettings.shared.recordFPS
+        start(displayID: displayID, scale: scale, sourceRect: nil, onFinished: onFinished)
+    }
 
+    /// Start recording just a selected region (points, top-left origin within the display).
+    func startRegion(displayID: CGDirectDisplayID, scale: Int, sourceRect: CGRect,
+                     onFinished: @escaping (URL?) -> Void) {
+        start(displayID: displayID, scale: scale, sourceRect: sourceRect, onFinished: onFinished)
+    }
+
+    private func start(displayID: CGDirectDisplayID, scale: Int, sourceRect: CGRect?,
+                       onFinished: @escaping (URL?) -> Void) {
+        guard !isRecording else { return }
+        self.onFinished = onFinished
+        let fps = AppSettings.shared.recordFPS
         let audio = AppSettings.shared.recordSystemAudio
         Task {
             do {
-                try await engine.start(displayID: displayID, scale: scale, fps: fps, captureAudio: audio)
+                try await engine.start(displayID: displayID, scale: scale, fps: fps,
+                                       captureAudio: audio, sourceRect: sourceRect)
                 isRecording = true
                 elapsed = 0
                 showControlBar()

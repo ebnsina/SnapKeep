@@ -74,6 +74,13 @@ struct MenuContent: View {
                 app.toggleRecording()
             }
             .keyboardShortcut("6", modifiers: [.command, .shift])
+
+            if !app.recorder.isRecording {
+                MenuButton(title: "Record Region", subtitle: "Select an area to record",
+                           symbol: "rectangle.dashed.badge.record") {
+                    app.recordRegion()
+                }
+            }
         }
     }
 

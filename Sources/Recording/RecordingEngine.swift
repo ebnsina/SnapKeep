@@ -18,7 +18,9 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
 
     /// Start recording the given display. `completion` fires (on the main thread) with the
     /// finished file URL, or nil on failure, after `stop()`.
-    func start(displayID: CGDirectDisplayID, scale: Int, fps: Int, captureAudio: Bool = false) async throws {
+    /// `sourceRect` (points, top-left origin within the display) records just that region.
+    func start(displayID: CGDirectDisplayID, scale: Int, fps: Int,
+               captureAudio: Bool = false, sourceRect: CGRect? = nil) async throws {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first(where: { $0.displayID == displayID })
                 ?? content.displays.first else {
@@ -34,10 +36,18 @@ final class RecordingEngine: NSObject, SCStreamOutput, SCStreamDelegate, @unchec
             filter = SCContentFilter(display: display, excludingWindows: [])
         }
 
-        let width = display.width * scale
-        let height = display.height * scale
-
+        // Even dimensions required by H.264.
+        func even(_ v: Int) -> Int { v - (v % 2) }
+        let width: Int, height: Int
         let config = SCStreamConfiguration()
+        if let sr = sourceRect {
+            config.sourceRect = sr
+            width = even(Int(sr.width) * scale)
+            height = even(Int(sr.height) * scale)
+        } else {
+            width = even(display.width * scale)
+            height = even(display.height * scale)
+        }
         config.width = width
         config.height = height
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
